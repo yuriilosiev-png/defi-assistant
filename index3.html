@@ -1,0 +1,2497 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0a0e1a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DeFi">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>DeFi Analytics</title>
+<!-- fonts: system stack for offline/APK -->
+<style>
+/* ═══════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════ */
+:root {
+  --bg:       #080c18;
+  --surface:  #0f1628;
+  --surface2: #161f35;
+  --surface3: #1c2840;
+  --border:   #1e2d45;
+  --border2:  #253550;
+  --accent:   #00e5ff;
+  --accent2:  #7c3aed;
+  --green:    #10b981;
+  --green2:   #059669;
+  --orange:   #f59e0b;
+  --red:      #ef4444;
+  --text:     #f1f5f9;
+  --muted:    #64748b;
+  --muted2:   #94a3b8;
+  --tab-h:    64px;
+  --safe-b:   env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+}
+
+/* ═══════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════ */
+.screens {
+  height: calc(100dvh - var(--tab-h) - var(--safe-b));
+  overflow: hidden;
+  position: relative;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 24px;
+  display: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+.screen.active { display: block; }
+.screen::-webkit-scrollbar { display: none; }
+
+/* ═══════════════════════════════════════
+   TAB BAR
+═══════════════════════════════════════ */
+.tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0; right: 0;
+  height: calc(var(--tab-h) + var(--safe-b));
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: flex-start;
+  padding-top: 8px;
+  z-index: 100;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px 0;
+  position: relative;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.tab-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.tab-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--muted);
+  transition: color 0.2s;
+  letter-spacing: 0.2px;
+}
+
+.tab.active .tab-label { color: var(--accent); }
+.tab.active .tab-icon {
+  background: rgba(0,229,255,0.12);
+  color: var(--accent);
+}
+
+/* Алерт-бейдж на табе */
+.tab-badge {
+  position: absolute;
+  top: -2px; right: -4px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--red);
+  border: 2px solid var(--surface);
+  display: none;
+}
+.tab-badge.show { display: block; }
+
+/* ═══════════════════════════════════════
+   ОБЩИЕ КОМПОНЕНТЫ
+═══════════════════════════════════════ */
+.screen-header {
+  padding: 16px 16px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+  border-bottom: 1px solid var(--border);
+}
+.screen-title {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.card-header {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+.card-icon {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+.card-title { font-size: 14px; font-weight: 700; flex: 1; }
+.card-badge {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: var(--surface2);
+  color: var(--muted2);
+}
+.card-body { padding: 14px 16px; }
+
+/* Алерт-баннер */
+.alert-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.alert-danger  { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.3);  color: var(--red); }
+.alert-warning { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.3); color: var(--orange); }
+.alert-ok      { background: rgba(16,185,129,0.10); border: 1px solid rgba(16,185,129,0.3); color: var(--green); }
+.alert-info    { background: rgba(0,229,255,0.08);  border: 1px solid rgba(0,229,255,0.2);  color: var(--accent); }
+
+/* Метрика */
+.metric { display: flex; flex-direction: column; gap: 2px; }
+.metric-label { font-size: 10px; color: var(--muted2); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 0.5px; }
+.metric-value { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; }
+.metric-sub   { font-size: 10px; color: var(--muted2); font-family: 'Space Mono', monospace; }
+
+/* Разделитель */
+.divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+/* Кнопка */
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--accent2), #4f46e5);
+  border: none;
+  border-radius: 14px;
+  color: white;
+  font-family: 'Syne', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.btn-secondary {
+  width: 100%;
+  padding: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Поле ввода */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  transition: border-color 0.2s;
+}
+.input-row:focus-within { border-color: var(--accent); }
+.input-row label { font-size: 12px; color: var(--muted2); font-family: 'Space Mono', monospace; white-space: nowrap; }
+.input-row input {
+  flex: 1; background: none; border: none; outline: none;
+  color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 16px; font-weight: 700; text-align: right;
+}
+.input-sym { font-family: 'Space Mono', monospace; font-size: 13px; color: var(--accent); font-weight: 700; }
+
+/* ═══════════════════════════════════════
+   ЭКРАН 1 — ГЛАВНАЯ
+═══════════════════════════════════════ */
+
+/* Hero — главная цифра */
+.hero {
+  padding: 24px 16px 20px;
+  text-align: center;
+  position: relative;
+}
+.hero-label {
+  font-size: 11px;
+  color: var(--muted2);
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+.hero-value {
+  font-size: 44px;
+  font-weight: 800;
+  font-family: 'Space Mono', monospace;
+  letter-spacing: -1px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.hero-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-family: 'Space Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+.hero-delta.pos { background: rgba(16,185,129,0.15); color: var(--green); }
+.hero-delta.neg { background: rgba(239,68,68,0.15);  color: var(--red); }
+.hero-delta.neu { background: var(--surface2); color: var(--muted2); }
+
+/* Быстрые метрики под hero */
+.quick-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px;
+  margin-bottom: 16px;
+}
+.qm-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px 10px;
+  text-align: center;
+}
+.qm-label { font-size: 9px; color: var(--muted2); font-family: 'Space Mono', monospace; text-transform: uppercase; margin-bottom: 6px; letter-spacing: 0.3px; }
+.qm-value { font-family: 'Space Mono', monospace; font-size: 15px; font-weight: 700; line-height: 1; }
+.qm-sub   { font-size: 9px; color: var(--muted2); font-family: 'Space Mono', monospace; margin-top: 3px; }
+
+/* HF блок */
+.hf-block {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  margin: 0 16px 12px;
+}
+.hf-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.hf-label { font-size: 11px; color: var(--muted2); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 0.5px; }
+.hf-value { font-family: 'Space Mono', monospace; font-size: 28px; font-weight: 700; }
+.hf-bar-wrap { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+.hf-bar { height: 100%; border-radius: 4px; transition: width 0.6s, background 0.4s; }
+.hf-zone { font-size: 12px; font-weight: 700; }
+
+/* Алерты */
+.alerts-section { padding: 0 16px; margin-bottom: 12px; }
+.alerts-title {
+  font-size: 11px;
+  font-family: 'Space Mono', monospace;
+  color: var(--muted2);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+
+/* Доход месяц */
+.income-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 0 16px;
+  margin-bottom: 12px;
+}
+.income-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 12px;
+}
+.income-label { font-size: 10px; color: var(--muted2); font-family: 'Space Mono', monospace; text-transform: uppercase; margin-bottom: 6px; }
+.income-value { font-family: 'Space Mono', monospace; font-size: 18px; font-weight: 700; color: var(--green); }
+.income-sub   { font-size: 10px; color: var(--muted2); font-family: 'Space Mono', monospace; margin-top: 3px; }
+
+/* ═══════════════════════════════════════
+   ЭКРАН 2 — ПОЗИЦИИ
+═══════════════════════════════════════ */
+.positions-wrap { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Актив в залоге */
+.collateral-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.ci-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.ci-name { font-size: 14px; font-weight: 700; flex: 1; }
+.ci-right { text-align: right; }
+.ci-value { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; color: var(--orange); }
+.ci-qty   { font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted2); margin-top: 2px; }
+
+/* Пул в позициях */
+.pool-item {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px;
+}
+.pool-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.pool-item-name { font-size: 14px; font-weight: 700; flex: 1; }
+.pool-item-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.pis { display: flex; flex-direction: column; gap: 2px; }
+.pis label { font-size: 9px; color: var(--muted2); font-family: 'Space Mono', monospace; text-transform: uppercase; }
+.pis span  { font-family: 'Space Mono', monospace; font-size: 13px; font-weight: 700; }
+
+/* ═══════════════════════════════════════
+   ЭКРАН 3 — ЖУРНАЛ
+═══════════════════════════════════════ */
+.journal-wrap { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Сводка */
+.journal-summary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.js-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 12px;
+}
+.js-label { font-size: 9px; color: var(--muted2); font-family: 'Space Mono', monospace; text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 6px; }
+.js-value { font-family: 'Space Mono', monospace; font-size: 19px; font-weight: 700; }
+
+/* График-заглушка */
+.chart-placeholder {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px;
+  text-align: center;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.chart-placeholder-icon { font-size: 32px; }
+.chart-placeholder-text { font-size: 13px; color: var(--muted2); }
+
+/* Список записей */
+.jrn-entry-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.jec-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.jec-info { flex: 1; min-width: 0; }
+.jec-type { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.jec-meta { font-size: 11px; color: var(--muted2); font-family: 'Space Mono', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jec-amount { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+
+/* ═══════════════════════════════════════
+   ЭКРАН 4 — СТРАТЕГИЯ
+═══════════════════════════════════════ */
+.strategy-wrap { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Статус стратегии */
+.strategy-status {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 20px 16px;
+  text-align: center;
+}
+.ss-title { font-size: 13px; color: var(--muted2); margin-bottom: 12px; }
+.ss-verdict {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.ss-sub { font-size: 12px; color: var(--muted2); }
+
+/* Безубыточность */
+.be-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.be-row:last-child { border-bottom: none; padding-bottom: 0; }
+.be-label { font-size: 12px; color: var(--muted2); }
+.be-value { font-family: 'Space Mono', monospace; font-size: 14px; font-weight: 700; }
+
+/* ═══════════════════════════════════════
+   ТИКЕР
+═══════════════════════════════════════ */
+.ticker-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.ticker-bar::-webkit-scrollbar { display: none; }
+.tick {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 10px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.tick-name { font-size: 9px; color: var(--muted2); font-family: 'Space Mono', monospace; }
+.tick-val  { font-size: 11px; font-weight: 700; color: var(--accent); font-family: 'Space Mono', monospace; }
+.live-dot  { width: 5px; height: 5px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; flex-shrink: 0; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+/* ═══════════════════════════════════════
+   EMPTY STATE
+═══════════════════════════════════════ */
+.empty-state {
+  padding: 40px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.empty-icon { font-size: 40px; }
+.empty-title { font-size: 16px; font-weight: 700; }
+.empty-sub { font-size: 13px; color: var(--muted2); line-height: 1.6; }
+
+/* Анимация появления экрана */
+@keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.screen.active > * { animation: fadeIn 0.2s ease; }
+
+/* Переключатель языка — один флажок в шапке */
+.lang-flag {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  touch-action: manipulation;
+  transition: all 0.2s;
+  user-select: none;
+}
+.lang-flag:active { opacity: 0.7; transform: scale(0.93); }
+
+/* Скролл-индикатор загрузки */
+.skeleton {
+  background: linear-gradient(90deg, var(--surface2) 25%, var(--surface3) 50%, var(--surface2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ SCREENS ═══════════════════════════════ -->
+<div class="screens">
+
+  <!-- ─── ЭКРАН 1: ГЛАВНАЯ ─── -->
+  <div class="screen active" id="screen-home">
+
+    <!-- Тикер -->
+    <div style="position:relative;border-bottom:1px solid var(--border)">
+      <div class="ticker-bar" style="padding-right:52px">
+        <div class="tick"><div class="live-dot"></div><span class="tick-name">BTC</span><span class="tick-val" id="t_btc">...</span></div>
+        <div class="tick"><span class="tick-name">ETH</span><span class="tick-val" id="t_eth">...</span></div>
+        <div class="tick"><span class="tick-name">SOL</span><span class="tick-val" id="t_sol">...</span></div>
+        <div class="tick"><span class="tick-name">BNB</span><span class="tick-val" id="t_bnb">...</span></div>
+        <div class="tick"><span class="tick-name">XRP</span><span class="tick-val" id="t_xrp">...</span></div>
+        <div class="tick"><span class="tick-name">AVAX</span><span class="tick-val" id="t_avax">...</span></div>
+        <div class="tick" style="border-color:rgba(255,215,0,0.3)"><span class="tick-name" style="color:#ffd700">GOLD</span><span class="tick-val" id="t_gold" style="color:#ffd700">...</span></div>
+      </div>
+      <!-- Флажок — поверх тикера, прижат вправо, с фейдом -->
+      <div style="position:absolute;right:0;top:0;bottom:0;display:flex;align-items:center;padding-right:8px;background:linear-gradient(to right,transparent,var(--bg) 28%)">
+        <div class="lang-flag" id="lang-flag" onclick="toggleLang()">🇷🇺</div>
+      </div>
+    </div>
+
+    <!-- Hero: общая стоимость портфеля -->
+    <div class="hero">
+      <div class="hero-label" id="lbl-portfolio">Стоимость портфеля</div>
+      <div class="hero-value" id="home_total">$0</div>
+      <div id="home_delta" class="hero-delta neu">— нет данных</div>
+    </div>
+
+    <!-- Быстрые метрики -->
+    <div class="quick-metrics">
+      <div class="qm-card">
+        <div class="qm-label" id="lbl-collateral">Залог</div>
+        <div class="qm-value" id="qm_collateral">—</div>
+        <div class="qm-sub" id="lbl-collateral-sub">Aave</div>
+      </div>
+      <div class="qm-card">
+        <div class="qm-label" id="lbl-loan">Займ</div>
+        <div class="qm-value" id="qm_loan" style="color:var(--orange)">—</div>
+        <div class="qm-sub" id="lbl-loan-sub">Активный</div>
+      </div>
+      <div class="qm-card">
+        <div class="qm-label" id="lbl-pools">Пулы</div>
+        <div class="qm-value" id="qm_pools" style="color:var(--green)">—</div>
+        <div class="qm-sub" id="lbl-pools-sub">Баланс</div>
+      </div>
+    </div>
+
+    <!-- Алерты -->
+    <div class="alerts-section" id="alerts_section" style="display:none">
+      <div class="alerts-title" id="lbl-alerts-title">⚠️ Требует внимания</div>
+      <div id="alerts_list"></div>
+    </div>
+
+    <!-- HF блок -->
+    <div class="hf-block">
+      <div class="hf-top">
+        <span class="hf-label" id="lbl-hf">Health Factor</span>
+        <span class="hf-value" id="home_hf" style="color:var(--muted2)">—</span>
+      </div>
+      <div class="hf-bar-wrap">
+        <div class="hf-bar" id="home_hf_bar" style="width:0%;background:var(--muted)"></div>
+      </div>
+      <div class="hf-zone" id="home_hf_zone" style="color:var(--muted2)">Введи данные залога и займа</div>
+    </div>
+
+    <!-- Доход -->
+    <div class="income-grid">
+      <div class="income-card">
+        <div class="income-label" id="lbl-income-month">Доход / мес</div>
+        <div class="income-value" id="home_income_month">—</div>
+        <div class="income-sub" id="lbl-income-month-sub">из пулов</div>
+      </div>
+      <div class="income-card">
+        <div class="income-label" id="lbl-net-month">Чистая / мес</div>
+        <div class="income-value" id="home_net_month" style="color:var(--accent)">—</div>
+        <div class="income-sub" id="lbl-net-month-sub">после долга</div>
+      </div>
+      <div class="income-card">
+        <div class="income-label" id="lbl-income-year">Доход / год</div>
+        <div class="income-value" id="home_income_year">—</div>
+        <div class="income-sub" id="lbl-income-year-sub">прогноз</div>
+      </div>
+      <div class="income-card">
+        <div class="income-label" id="lbl-debt-cost">Стоимость долга</div>
+        <div class="income-value" id="home_debt_cost" style="color:var(--red)">—</div>
+        <div class="income-sub" id="lbl-debt-cost-sub">в мес</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── ЭКРАН 2: ПОЗИЦИИ ─── -->
+  <div class="screen" id="screen-positions">
+    <div class="screen-header">
+      <span class="screen-title" id="sh-positions">Позиции</span>
+      <button class="btn-secondary" style="width:auto;padding:6px 14px;font-size:12px" id="btn-settings" onclick="goToSettings()">⚙️ Настройки</button>
+    </div>
+
+    <div class="positions-wrap">
+
+      <!-- Залог Aave -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(217,119,6,0.15)">🏦</div>
+          <span class="card-title">Залог Aave</span>
+          <span class="card-badge" id="pos_aave_total">$0</span>
+        </div>
+        <div class="card-body" id="pos_collateral_list">
+          <div class="empty-state" style="padding:20px 0">
+            <div class="empty-icon">🏦</div>
+            <div class="empty-sub">Добавь активы в настройках</div>
+          </div>
+        </div>
+
+        <!-- Займ -->
+        <div style="padding:0 16px 14px">
+          <div class="divider" style="margin:0 0 12px"></div>
+          <div class="input-row">
+            <label>Займ</label>
+            <input type="number" id="loan" placeholder="0.00" inputmode="decimal" oninput="calc()">
+            <span class="input-sym">$</span>
+          </div>
+          <!-- Зоны безопасного займа -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:10px">
+            <div onclick="applyLoan('green')" style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:9px;color:var(--green);font-family:'Space Mono',monospace;margin-bottom:3px">HF 2.0</div>
+              <div style="font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--green)" id="loan_g">—</div>
+              <div style="font-size:9px;color:var(--muted2)">Безопасно</div>
+            </div>
+            <div onclick="applyLoan('orange')" style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:9px;color:var(--orange);font-family:'Space Mono',monospace;margin-bottom:3px">HF 1.6</div>
+              <div style="font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--orange)" id="loan_o">—</div>
+              <div style="font-size:9px;color:var(--muted2)">Следи</div>
+            </div>
+            <div onclick="applyLoan('red')" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:8px;text-align:center;cursor:pointer">
+              <div style="font-size:9px;color:var(--red);font-family:'Space Mono',monospace;margin-bottom:3px">HF 1.4</div>
+              <div style="font-family:'Space Mono',monospace;font-size:13px;font-weight:700;color:var(--red)" id="loan_r">—</div>
+              <div style="font-size:9px;color:var(--muted2)">Риск</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Мои пулы -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(16,185,129,0.15)">🏊</div>
+          <span class="card-title">Мои пулы</span>
+          <span class="card-badge" id="pos_pools_total">$0</span>
+        </div>
+        <div class="card-body" id="pos_pools_list">
+          <div class="empty-state" style="padding:20px 0">
+            <div class="empty-icon">🏊</div>
+            <div class="empty-sub">Добавь пулы в настройках</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── ЭКРАН 3: ЖУРНАЛ ─── -->
+  <div class="screen" id="screen-journal">
+    <div class="screen-header">
+      <span class="screen-title" id="sh-journal">Журнал</span>
+      <button class="btn-secondary" style="width:auto;padding:6px 14px;font-size:12px" id="btn-add-entry" onclick="openAddEntry()">+ Запись</button>
+    </div>
+
+    <div class="journal-wrap">
+
+      <!-- Сводка всего периода -->
+      <div class="journal-summary">
+        <div class="js-card">
+          <div class="js-label" id="lbl-total-in">Всего внёс</div>
+          <div class="js-value" id="jrn_total_in" style="color:var(--text)">$0</div>
+        </div>
+        <div class="js-card">
+          <div class="js-label" id="lbl-total-earned">Заработано</div>
+          <div class="js-value" id="jrn_total_earned" style="color:var(--green)">$0</div>
+        </div>
+        <div class="js-card">
+          <div class="js-label" id="lbl-total-out">Снято</div>
+          <div class="js-value" id="jrn_total_out" style="color:var(--orange)">$0</div>
+        </div>
+        <div class="js-card">
+          <div class="js-label" id="lbl-net-profit">Чистая прибыль</div>
+          <div class="js-value" id="jrn_net_profit" style="color:var(--accent)">$0</div>
+        </div>
+      </div>
+
+      <!-- График накопления — заглушка -->
+      <div class="chart-placeholder" id="chart_placeholder">
+        <div class="chart-placeholder-icon">📈</div>
+        <div class="empty-title" style="font-size:14px" id="lbl-chart-title">График накопления</div>
+        <div class="chart-placeholder-text" id="lbl-chart-hint">Появится после первых записей в журнале</div>
+      </div>
+      <canvas id="growth_chart" style="display:none;border-radius:14px;overflow:hidden" height="160"></canvas>
+
+      <!-- Список записей -->
+      <div id="jrn_entries_list">
+        <div class="empty-state">
+          <div class="empty-icon">📓</div>
+          <div class="empty-title">Журнал пуст</div>
+          <div class="empty-sub">Добавь первую запись — каждое пополнение, доход с пула или снятие средств.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── ЭКРАН 4: СТРАТЕГИЯ ─── -->
+  <div class="screen" id="screen-strategy">
+    <div class="screen-header">
+      <span class="screen-title" id="sh-strategy">Стратегия</span>
+    </div>
+
+    <div class="strategy-wrap">
+
+      <!-- Вердикт стратегии -->
+      <div class="strategy-status" id="strategy_verdict">
+        <div class="ss-title" id="lbl-strategy-now">Стратегия сейчас</div>
+        <div class="ss-verdict" id="sv_text" style="color:var(--muted2)">Нет данных</div>
+        <div class="ss-sub" id="sv_sub">Введи данные займа и пулов</div>
+      </div>
+
+      <!-- Точка безубыточности -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(124,58,237,0.15)">⚖️</div>
+          <span class="card-title" id="lbl-breakeven">Точка безубыточности</span>
+        </div>
+        <div class="card-body">
+          <div class="be-row">
+            <span class="be-label" id="lbl-be-income">Доход с пулов / мес</span>
+            <span class="be-value" id="be_income" style="color:var(--green)">—</span>
+          </div>
+          <div class="be-row">
+            <span class="be-label" id="lbl-be-cost">Стоимость долга / мес</span>
+            <span class="be-value" id="be_cost" style="color:var(--red)">—</span>
+          </div>
+          <div class="be-row">
+            <span class="be-label" id="lbl-be-profit">Чистая прибыль / мес</span>
+            <span class="be-value" id="be_profit">—</span>
+          </div>
+          <div class="be-row">
+            <span class="be-label" id="lbl-be-year">Чистая прибыль / год</span>
+            <span class="be-value" id="be_year">—</span>
+          </div>
+          <div class="input-row" style="margin-top:12px">
+            <label>Ставка займа %/год</label>
+            <input type="number" id="borrow_rate" value="5.5" inputmode="decimal" oninput="calc()">
+            <span class="input-sym">%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Симулятор падения -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(239,68,68,0.15)">📉</div>
+          <span class="card-title" id="lbl-crash-sim">Симулятор падения</span>
+          <span class="card-badge" id="lbl-sim-badge">СЦЕНАРИЙ</span>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <span style="font-size:12px;color:var(--muted2)" id="lbl-drop">Падение</span>
+            <input type="range" id="sim_slider" min="5" max="70" value="20"
+              style="flex:1;accent-color:var(--accent)" oninput="updateSim()">
+            <span id="sim_pct" style="font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--red);min-width:48px;text-align:right">−20%</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+              <div style="font-size:9px;color:var(--muted2);font-family:'Space Mono',monospace;text-transform:uppercase;margin-bottom:4px" id="lbl-sim-col">Залог после</div>
+              <div id="sim_collateral" style="font-family:'Space Mono',monospace;font-size:15px;font-weight:700">—</div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+              <div style="font-size:9px;color:var(--muted2);font-family:'Space Mono',monospace;text-transform:uppercase;margin-bottom:4px" id="lbl-sim-hf">Health Factor</div>
+              <div id="sim_hf" style="font-family:'Space Mono',monospace;font-size:15px;font-weight:700">—</div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+              <div style="font-size:9px;color:var(--muted2);font-family:'Space Mono',monospace;text-transform:uppercase;margin-bottom:4px" id="lbl-sim-margin">До ликвидации</div>
+              <div id="sim_margin" style="font-family:'Space Mono',monospace;font-size:15px;font-weight:700">—</div>
+            </div>
+            <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px">
+              <div style="font-size:9px;color:var(--muted2);font-family:'Space Mono',monospace;text-transform:uppercase;margin-bottom:4px" id="lbl-sim-liq">BTC при ликв.</div>
+              <div id="sim_liq_price" style="font-family:'Space Mono',monospace;font-size:15px;font-weight:700">—</div>
+            </div>
+          </div>
+          <div id="sim_warn" style="margin-top:10px;border-radius:8px;font-size:12px;text-align:center;font-weight:700"></div>
+        </div>
+      </div>
+
+      <!-- Ребаланс -->
+      <div class="card" id="rebal_card" style="display:none">
+        <div class="card-header">
+          <div class="card-icon" style="background:rgba(245,158,11,0.15)">⚖️</div>
+          <span class="card-title" id="lbl-rebalance">Ребаланс портфеля</span>
+          <span class="card-badge" id="rebal_badge"><span id="lbl-rebal-badge">АНАЛИЗ</span></span>
+        </div>
+        <div class="card-body" id="rebal_body"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─── ЭКРАН 5: СВЯЗЬ ─── -->
+  <div class="screen" id="screen-contact">
+    <div class="screen-header">
+      <span class="screen-title" id="sh-contact">✈️ Связь и помощь</span>
+    </div>
+
+    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+
+      <!-- Профиль -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:24px 16px;text-align:center">
+        <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;margin:0 auto 14px;color:#fff;box-shadow:0 0 30px rgba(124,58,237,0.4)">YL</div>
+        <div style="font-size:18px;font-weight:800;margin-bottom:4px">Yurii Losev</div>
+        <div style="font-size:12px;color:var(--accent);font-family:'Space Mono',monospace;margin-bottom:12px">@Losiev11</div>
+        <div id="lbl-bio" style="font-size:13px;color:var(--muted2);line-height:1.7;margin-bottom:20px;padding:0 8px">Практикующий DeFi инвестор. Работаю с Aave, Uniswap, GMX и опционными стратегиями каждый день — не в теории, а на реальных деньгах.</div>
+        <a id="lbl-tg-btn" href="https://t.me/Losiev11" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;background:linear-gradient(135deg,#0088cc,#0066aa);border-radius:14px;color:white;font-size:15px;font-weight:800;text-decoration:none;font-family:'Syne',sans-serif;box-shadow:0 4px 20px rgba(0,136,204,0.3)">✈️ Написать в Telegram</a>
+      </div>
+
+      <!-- Для специалистов -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px">
+        <div id="lbl-for-pros" style="font-size:11px;font-family:'Space Mono',monospace;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🔬 Для специалистов</div>
+        <div id="lbl-pros-desc" style="font-size:13px;color:var(--muted2);line-height:1.7;margin-bottom:12px">Нашли баг или есть идея как улучшить? Напишите — разберу каждый кейс.</div>
+        <a href="https://t.me/Losiev11" target="_blank" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);text-decoration:none;font-size:13px;font-weight:700">
+          <span style="font-size:18px">🔧</span>
+          <div><div id="lbl-write-fix">Написать что исправить</div><div id="lbl-bugs-hint" style="font-size:11px;color:var(--muted2);font-weight:400;margin-top:2px">Баги, неточности, предложения</div></div>
+        </a>
+      </div>
+
+      <!-- Для новичков -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px">
+        <div id="lbl-for-newbies" style="font-size:11px;font-family:'Space Mono',monospace;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">🌱 Для новичков</div>
+        <div id="lbl-newbies-desc" style="font-size:13px;color:var(--muted2);line-height:1.7;margin-bottom:12px">Что-то непонятно или неудобно? Напишите — сделаю понятнее.</div>
+        <a href="https://t.me/Losiev11" target="_blank" style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);text-decoration:none;font-size:13px;font-weight:700">
+          <span style="font-size:18px">💬</span>
+          <div><div id="lbl-write-unclear">Написать что непонятно</div><div id="lbl-improve-hint" style="font-size:11px;color:var(--muted2);font-weight:400;margin-top:2px">Помогает улучшить приложение</div></div>
+        </a>
+      </div>
+
+      <!-- Донат -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px">
+        <div id="lbl-support-dev" style="font-size:11px;font-family:'Space Mono',monospace;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">☕ Поддержать разработку</div>
+        <div id="lbl-support-desc" style="font-size:13px;color:var(--muted2);line-height:1.7;margin-bottom:12px">Приложение бесплатное. Если сэкономило время или деньги — буду рад 🙂</div>
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px">
+          <div id="lbl-evm-hint" style="font-size:11px;color:var(--muted2);font-family:'Space Mono',monospace;margin-bottom:8px">USDC / ETH / любой EVM токен</div>
+          <div style="font-size:12px;font-family:'Space Mono',monospace;color:var(--accent);word-break:break-all;margin-bottom:10px">0x834Be694A9c514051e6c74D46e5b5937bb1e69FA</div>
+          <button id="lbl-copy-addr"
+            onclick="navigator.clipboard.writeText('0x834Be694A9c514051e6c74D46e5b5937bb1e69FA');this.textContent=t('copied');setTimeout(()=>this.textContent=t('copy_addr'),2000)"
+            style="width:100%;padding:10px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);border-radius:8px;color:var(--accent);font-family:'Syne',sans-serif;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation">
+            📋 Скопировать адрес
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ЭКРАН: ДОКУМЕНТАЦИЯ -->
+  <div class="screen" id="screen-docs">
+    <div class="screen-header">
+      <span class="screen-title" id="sh-docs">📚 Документация</span>
+    </div>
+    <div style="padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+
+      <!-- 1. О приложении -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden">
+        <div style="padding:14px 16px;background:linear-gradient(135deg,rgba(0,229,255,0.08),rgba(124,58,237,0.06));border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">⚡</span>
+          <span style="font-size:14px;font-weight:700" id="doc-h-app">Что умеет приложение</span>
+        </div>
+        <div style="padding:14px 16px;font-size:13px;color:var(--muted2);line-height:1.8">
+          DeFi Analytics — личный инструмент для управления стратегией залог → займ → пулы. Все данные хранятся <b style="color:var(--text)">локально в браузере</b>, ничего не уходит на сервер.<br><br>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Живые цены BTC, ETH, SOL, BNB, XRP, AVAX, GOLD</div><div style="font-size:11px;color:var(--muted);margin-top:1px">обновляются каждые 60 сек</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Health Factor — расчёт и цветовая зона безопасности</div><div style="font-size:11px;color:var(--muted);margin-top:1px">с полоской и алертами</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Симулятор падения</div><div style="font-size:11px;color:var(--muted);margin-top:1px">что будет с HF при -20%, -40% и т.д.</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Калькулятор безопасного займа</div><div style="font-size:11px;color:var(--muted);margin-top:1px">три зоны: HF 2.0 / 1.6 / 1.4</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Трекер залога Aave</div><div style="font-size:11px;color:var(--muted);margin-top:1px">стоимость пересчитывается по живым ценам</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Трекер пулов Uniswap</div><div style="font-size:11px;color:var(--muted);margin-top:1px">статус диапазона в реальном времени</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Трекер пулов GMX</div><div style="font-size:11px;color:var(--muted);margin-top:1px">балансы GM/GLV пересчитываются по цене актива</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Ребаланс портфеля</div><div style="font-size:11px;color:var(--muted);margin-top:1px">алерт когда доля актива отклонилась от цели</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Журнал операций</div><div style="font-size:11px;color:var(--muted);margin-top:1px">история всех пополнений, доходов, снятий</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">График накопления капитала</div><div style="font-size:11px;color:var(--muted);margin-top:1px">рост вложений vs заработанное по месяцам</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Точка безубыточности</div><div style="font-size:11px;color:var(--muted);margin-top:1px">прибыльна ли стратегия в текущий момент</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">✅</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Два языка</div><div style="font-size:11px;color:var(--muted);margin-top:1px">русский и английский, переключение флажком</div></div>
+              </div><div style="display:flex;gap:10px;padding:8px 10px;background:var(--surface2);border-radius:10px">
+                <span style="flex-shrink:0">🔧</span>
+                <div><div style="color:var(--text);font-weight:600;font-size:12px">Подключение кошелька (в разработке)</div><div style="font-size:11px;color:var(--muted);margin-top:1px">данные Aave и пулов подтянутся автоматически</div></div>
+              </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Главная -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden">
+        <div style="padding:14px 16px;background:rgba(0,229,255,0.06);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🏠</span>
+          <span style="font-size:14px;font-weight:700" id="doc-h-home">Главная — картина одним взглядом</span>
+        </div>
+        <div style="padding:14px 16px;font-size:13px;color:var(--muted2);line-height:1.8">
+          Открываешь приложение — сразу видишь всё важное:<br><br>
+          • <b style="color:var(--text)">Стоимость портфеля</b> — залог + пулы по текущим ценам<br>
+          • <b style="color:var(--text)">Быстрые метрики</b> — залог, займ, баланс в пулах<br>
+          • <b style="color:var(--text)">Алерты</b> — если HF опасный, стратегия убыточная или диапазон Uniswap вышел — карточка алерта кликабельна и ведёт на нужный таб<br>
+          • <b style="color:var(--text)">Health Factor</b> — полоска с зоной и текстом статуса<br>
+          • <b style="color:var(--text)">Доход / мес и год</b> — прогноз из пулов, чистая прибыль после вычета стоимости долга
+        </div>
+      </div>
+
+      <!-- 3. Позиции -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden">
+        <div style="padding:14px 16px;background:rgba(217,119,6,0.07);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">📊</span>
+          <span style="font-size:14px;font-weight:700" id="doc-h-pos">Позиции — залог и пулы</span>
+        </div>
+        <div style="padding:14px 16px;font-size:13px;color:var(--muted2);line-height:1.8">
+          <b style="color:var(--orange)">Залог Aave:</b> вводишь количество каждого актива (BTC, ETH и др.) — стоимость в $ считается автоматически по живой цене. Зоны безопасного займа кликабельны — нажал на зону, сумма займа заполнилась.<br><br>
+          <b style="color:var(--orange)">Мои пулы:</b><br>
+          • <b>Uniswap v3</b> — показывает статус ✅ В диапазоне / 🚨 Вне диапазона. Задай нижнюю и верхнюю границу — статус обновляется с ценой<br>
+          • <b>GMX GLV/GM</b> — вводишь количество токенов пула. Стоимость пересчитывается по цене базового актива автоматически<br>
+          • <b>Custom</b> — любой другой пул с ручным балансом и APY<br><br>
+          <div style="background:rgba(0,229,255,0.06);border:1px solid rgba(0,229,255,0.15);border-radius:10px;padding:10px 12px">
+            🔧 <b style="color:var(--accent)">В разработке:</b> подключение кошелька (MetaMask, WalletConnect). После подключения данные залога Aave и позиций в пулах будут подтягиваться автоматически — не нужно ничего вводить вручную.
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Журнал -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden">
+        <div style="padding:14px 16px;background:rgba(16,185,129,0.07);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">📓</span>
+          <span style="font-size:14px;font-weight:700" id="doc-h-jrn">Журнал — история и рост капитала</span>
+        </div>
+        <div style="padding:14px 16px;font-size:13px;color:var(--muted2);line-height:1.8">
+          Записывай каждую операцию: пополнения, доход с пулов, снятия, комиссии, награды.<br><br>
+          • <b style="color:var(--text)">Сводка периода</b> — всего внёс / заработано / снято / чистая прибыль за всё время<br>
+          • <b style="color:var(--text)">График накопления</b> — линия вложений vs линия итогового капитала по месяцам. Появляется после двух месяцев данных<br>
+          • <b style="color:var(--text)">Список записей</b> — последние 30 операций с типом, источником и суммой<br><br>
+          <b style="color:var(--green)">Совет:</b> фиксируй доход с пулов раз в неделю или месяц. Через 3–6 месяцев журнал ответит на вопрос: стратегия реально работает или нет?
+        </div>
+      </div>
+
+      <!-- 5. Стратегия -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden">
+        <div style="padding:14px 16px;background:rgba(124,58,237,0.08);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">⚡</span>
+          <span style="font-size:14px;font-weight:700" id="doc-h-strat">Стратегия — аналитика и риск-менеджмент</span>
+        </div>
+        <div style="padding:14px 16px;font-size:13px;color:var(--muted2);line-height:1.8">
+          • <b style="color:var(--text)">Вердикт</b> — прибыльная или убыточная стратегия прямо сейчас. Считается как доход с пулов минус стоимость займа в месяц<br>
+          • <b style="color:var(--text)">Точка безубыточности</b> — видишь доход/мес, долг/мес, чистую прибыль/год<br>
+          • <b style="color:var(--text)">Симулятор падения</b> — тяни слайдер. Показывает залог после падения, HF, сколько осталось до ликвидации, при какой цене BTC ликвидируют<br>
+          • <b style="color:var(--text)">Ребаланс</b> — появляется автоматически когда доля актива отклонилась от цели более чем на 10%. Показывает кого докупить и на сколько продать
+        </div>
+      </div>
+
+      <!-- 6. Health Factor — подробно -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:18px;overflow:hidden">
+        <div style="padding:14px 16px;background:rgba(16,185,129,0.07);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">❤️</span>
+          <span style="font-size:14px;font-weight:700" id="doc-h-hf">Health Factor — как читать</span>
+        </div>
+        <div style="padding:14px 16px;font-size:13px;color:var(--muted2);line-height:1.8">
+          Формула: <b style="color:var(--accent)">залог × порог ликвидации ÷ займ</b><br><br>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0">
+            <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:8px;text-align:center">
+              <div style="color:var(--green);font-weight:800;font-size:14px">≥ 2.0</div><div style="font-size:11px;margin-top:2px">✅ Безопасно</div>
+            </div>
+            <div style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:10px;padding:8px;text-align:center">
+              <div style="color:var(--accent);font-weight:800;font-size:14px">1.6–2.0</div><div style="font-size:11px;margin-top:2px">👀 Следи</div>
+            </div>
+            <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.3);border-radius:10px;padding:8px;text-align:center">
+              <div style="color:var(--orange);font-weight:800;font-size:14px">1.4–1.6</div><div style="font-size:11px;margin-top:2px">⚠️ Действуй</div>
+            </div>
+            <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:8px;text-align:center">
+              <div style="color:var(--red);font-weight:800;font-size:14px">&lt; 1.4</div><div style="font-size:11px;margin-top:2px">🚨 Риск!</div>
+            </div>
+          </div>
+          Пороги ликвидации Aave v3: BTC/ETH — 82%, SOL/AVAX — 75%, USDC/USDT — 90%.<br>
+          При HF = 1.0 начинается ликвидация. <b style="color:var(--red)">Держи HF ≥ 2.0 — и рынок может упасть на 50% прежде чем ты в опасности.</b>
+        </div>
+      </div>
+
+      <!-- 7. Совет новичкам — стратегия 3 части -->
+      <div style="background:var(--surface);border:1px solid rgba(124,58,237,0.3);border-radius:18px;overflow:hidden">
+        <div style="padding:14px 16px;background:rgba(124,58,237,0.08);border-bottom:1px solid rgba(124,58,237,0.2);display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">🌱</span>
+          <span style="font-size:14px;font-weight:700" id="doc-h-tips">Совет новичкам — как работать с займом</span>
+        </div>
+        <div style="padding:14px 16px;font-size:13px;color:var(--muted2);line-height:1.8">
+          Не клади весь займ в один пул сразу. <b style="color:var(--text)">Раздели на 3 равных части:</b><br><br>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+            <div style="background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:10px 12px">
+              <div style="color:var(--accent);font-weight:700;margin-bottom:3px">① Первая треть</div>
+              <div>Открываешь диапазон Uniswap. Вышли за нижнюю границу — закрываешь. Получаешь актив — в залог Aave или single-asset пул.</div>
+            </div>
+            <div style="background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:10px 12px">
+              <div style="color:var(--accent);font-weight:700;margin-bottom:3px">② Вторая треть</div>
+              <div>С нового уровня открываешь следующий диапазон. Снова вышли — закрываешь, актив в залог.</div>
+            </div>
+            <div style="background:var(--surface2);border-left:3px solid var(--accent);border-radius:0 10px 10px 0;padding:10px 12px">
+              <div style="color:var(--accent);font-weight:700;margin-bottom:3px">③ Третья треть — резерв</div>
+              <div>Ждёт. Если рынок упал ещё — делаешь то же. Если развернулся — используешь для переоткрытия позиций выше.</div>
+            </div>
+          </div>
+          <div style="background:rgba(6,182,212,0.07);border:1px solid rgba(6,182,212,0.2);border-radius:10px;padding:10px 12px;margin-bottom:10px">
+            🛡️ <b style="color:var(--stable)">30–40% портфеля всегда в стейблах.</b> Работают в пулах (Uniswap USDC/USDT, GMX). Доход со стейблов должен быть выше ставки займа. Запас — для погашения долга или докупки актива при проливе.
+          </div>
+          <div style="background:rgba(46,213,115,0.07);border:1px solid rgba(46,213,115,0.2);border-radius:10px;padding:10px 12px">
+            💡 <b style="color:var(--green)">GMTrade (Solana):</b> На Solana работает GMX-совместимый протокол <b style="color:var(--text)">gmtrade.xyz</b>. Доступны два типа ликвидности: <b style="color:var(--text)">GM-пулы</b> — изолированные рынки (например: XAU/USD, XAG/USD, SOL/USD, EUR/USD и другие форекс и коммодити пары), и <b style="color:var(--text)">GLV-волты</b> [USDC-USDC] — автоматически ребалансирующий ваулт из нескольких GM-пулов. Особенность: помимо 63% от комиссий LP также выступают противником для трейдеров. APR меняется динамически и зависит от объёма торговли — смотри актуальные данные на <b style="color:var(--accent)">gmtrade.xyz/pools</b>.
+          </div>
+        </div>
+      </div>
+
+      <!-- 8. Чеклист -->
+      <div style="background:var(--surface);border:1px solid rgba(16,185,129,0.3);border-radius:18px;overflow:hidden;margin-bottom:8px">
+        <div style="padding:14px 16px;background:rgba(16,185,129,0.08);border-bottom:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;gap:10px">
+          <span style="font-size:18px">✅</span>
+          <span style="font-size:14px;font-weight:700" id="doc-h-check">Чеклист безопасной работы</span>
+        </div>
+        <div style="padding:14px 16px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:flex-start;gap:10px;font-size:13px">
+              <span style="color:var(--green);flex-shrink:0;font-size:16px;line-height:1.4">✓</span>
+              <span style="color:var(--muted2);line-height:1.6">HF всегда ≥ 2.0</span>
+            </div><div style="display:flex;align-items:flex-start;gap:10px;font-size:13px">
+              <span style="color:var(--green);flex-shrink:0;font-size:16px;line-height:1.4">✓</span>
+              <span style="color:var(--muted2);line-height:1.6">30–40% портфеля — стейблы, работающие в пулах</span>
+            </div><div style="display:flex;align-items:flex-start;gap:10px;font-size:13px">
+              <span style="color:var(--green);flex-shrink:0;font-size:16px;line-height:1.4">✓</span>
+              <span style="color:var(--muted2);line-height:1.6">Доход со стейблов > ставки займа</span>
+            </div><div style="display:flex;align-items:flex-start;gap:10px;font-size:13px">
+              <span style="color:var(--green);flex-shrink:0;font-size:16px;line-height:1.4">✓</span>
+              <span style="color:var(--muted2);line-height:1.6">Займ разделён на 3 части — не кладёшь всё в один диапазон</span>
+            </div><div style="display:flex;align-items:flex-start;gap:10px;font-size:13px">
+              <span style="color:var(--green);flex-shrink:0;font-size:16px;line-height:1.4">✓</span>
+              <span style="color:var(--muted2);line-height:1.6">Следишь за диапазонами Uniswap в реальном времени</span>
+            </div><div style="display:flex;align-items:flex-start;gap:10px;font-size:13px">
+              <span style="color:var(--green);flex-shrink:0;font-size:16px;line-height:1.4">✓</span>
+              <span style="color:var(--muted2);line-height:1.6">Ведёшь журнал каждого пополнения и дохода с пула</span>
+            </div><div style="display:flex;align-items:flex-start;gap:10px;font-size:13px">
+              <span style="color:var(--green);flex-shrink:0;font-size:16px;line-height:1.4">✓</span>
+              <span style="color:var(--muted2);line-height:1.6">Стратегия показывает «Прибыльная» — доход покрывает долг</span>
+            </div><div style="display:flex;align-items:flex-start;gap:10px;font-size:13px">
+              <span style="color:var(--green);flex-shrink:0;font-size:16px;line-height:1.4">✓</span>
+              <span style="color:var(--muted2);line-height:1.6">Есть запас стейблов для пополнения залога при проливе</span>
+            </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+
+</div><!-- /screens -->
+
+<!-- ═══════════════════════════════ TAB BAR ═══════════════════════════════ -->
+<nav class="tabbar">
+  <div class="tab active" onclick="switchTab('home')" id="tab-home">
+    <div class="tab-icon">🏠</div>
+    <span class="tab-label">Главная</span>
+  </div>
+  <div class="tab" onclick="switchTab('positions')" id="tab-positions">
+    <div class="tab-icon">
+      📊
+      <div class="tab-badge" id="badge-positions"></div>
+    </div>
+    <span class="tab-label">Позиции</span>
+  </div>
+  <div class="tab" onclick="switchTab('journal')" id="tab-journal">
+    <div class="tab-icon">📓</div>
+    <span class="tab-label">Журнал</span>
+  </div>
+  <div class="tab" onclick="switchTab('strategy')" id="tab-strategy">
+    <div class="tab-icon">
+      ⚡
+      <div class="tab-badge" id="badge-strategy"></div>
+    </div>
+    <span class="tab-label">Стратегия</span>
+  </div>
+  <div class="tab" onclick="switchTab('contact')" id="tab-contact">
+    <div class="tab-icon">✈️</div>
+    <span class="tab-label">Связь</span>
+  </div>
+  <div class="tab" onclick="switchTab('docs')" id="tab-docs">
+    <div class="tab-icon">📚</div>
+    <span class="tab-label" id="lbl-tab-docs">Инструкция</span>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════ HF ALERT BANNER ═══════════════════════ -->
+<div id="hf-alert" style="display:none;position:fixed;bottom:calc(var(--tab-h) + 12px + var(--safe-b));left:50%;transform:translateX(-50%);z-index:500;padding:12px 20px;border-radius:14px;font-size:13px;font-weight:700;font-family:'Syne',sans-serif;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);backdrop-filter:blur(8px);white-space:nowrap;animation:slideUp 0.3s ease"></div>
+<style>
+  @keyframes slideUp{from{transform:translateX(-50%) translateY(20px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+  #hf-alert.danger{background:rgba(239,68,68,0.95);color:#fff;border:1px solid rgba(239,68,68,0.5)}
+  #hf-alert.warning{background:rgba(245,158,11,0.95);color:#fff;border:1px solid rgba(245,158,11,0.5)}
+
+/* ── SETTINGS BOTTOM SHEET ── */
+.sheet-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:500;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.sheet-overlay.open{display:block}
+.settings-sheet{position:fixed;bottom:-100%;left:0;right:0;max-height:88vh;background:var(--surface);border-radius:20px 20px 0 0;z-index:600;transition:bottom .35s cubic-bezier(.32,.72,0,1);display:flex;flex-direction:column;padding-bottom:calc(16px + env(safe-area-inset-bottom,0px))}
+.settings-sheet.open{bottom:0}
+.sheet-handle{width:36px;height:4px;background:var(--border2);border-radius:2px;margin:12px auto 0;flex-shrink:0}
+.sheet-header{padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);flex-shrink:0}
+.sheet-title{font-size:16px;font-weight:800}
+.sheet-close{width:30px;height:30px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+.sheet-body{overflow-y:auto;padding:12px 16px;flex:1;-webkit-overflow-scrolling:touch}
+.sheet-body::-webkit-scrollbar{display:none}
+.sheet-section{margin-bottom:16px}
+.sheet-sec-title{font-size:10px;font-family:'SF Mono','Consolas',monospace;color:var(--muted2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.sa-row{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.sa-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sa-color{width:24px;height:24px;border-radius:6px;border:none;cursor:pointer;padding:0;flex-shrink:0}
+.sa-name{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:2px;font-family:inherit}
+.sa-pct-wrap{display:flex;align-items:center;gap:3px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:5px 8px}
+.sa-pct-wrap input{background:none;border:none;outline:none;color:var(--accent);font-family:'SF Mono','Consolas',monospace;font-size:14px;font-weight:700;width:40px;text-align:right;-moz-appearance:textfield}
+.sa-pct-wrap span{color:var(--muted2);font-size:12px}
+.sa-del{background:rgba(239,68,68,0.12);border:none;border-radius:6px;color:var(--red);width:28px;height:28px;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;touch-action:manipulation}
+.sa-thresh{display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px solid var(--border);margin-top:4px}
+.sa-thresh-lbl{font-size:10px;color:var(--muted2);font-family:'SF Mono','Consolas',monospace;flex:1}
+.sp-row{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px}
+.sp-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.sp-name{flex:1;background:none;border:none;outline:none;color:var(--text);font-size:14px;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:2px;font-family:inherit}
+.sp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sp-field{display:flex;flex-direction:column;gap:3px}
+.sp-field label{font-size:9px;color:var(--muted2);font-family:'SF Mono','Consolas',monospace;text-transform:uppercase}
+.sp-field input,.sp-field select{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 8px;color:var(--text);font-family:'SF Mono','Consolas',monospace;font-size:13px;outline:none}
+.sp-field input:focus,.sp-field select:focus{border-color:var(--accent)}
+.sum-badge{font-size:11px;font-family:'SF Mono','Consolas',monospace;padding:3px 10px;border-radius:6px;display:inline-block;margin-top:4px}
+.sum-ok{background:rgba(16,185,129,0.12);color:var(--green)}
+.sum-err{background:rgba(239,68,68,0.12);color:var(--red)}
+.btn-add-item{width:100%;padding:10px;background:rgba(0,229,255,0.06);border:1px dashed rgba(0,229,255,0.3);border-radius:10px;color:var(--accent);font-size:13px;font-weight:600;cursor:pointer;margin-top:4px;touch-action:manipulation;font-family:inherit}
+.sheet-save{margin:12px 16px 0;padding:14px;background:linear-gradient(135deg,var(--accent2),#4f46e5);border:none;border-radius:14px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;touch-action:manipulation;font-family:inherit;flex-shrink:0}
+
+</style>
+
+<script>
+
+// ===== LANG SYSTEM =====
+var lang = 'ru';
+var TR = {
+  ru: {
+    tab_home:'Главная',tab_positions:'Позиции',
+    tab_journal:'Журнал',tab_strategy:'Стратегия',tab_contact:'Связь',
+    portfolio_value:'Стоимость портфеля',no_data:'— нет данных',
+    collateral:'Залог',loan:'Займ',pools:'Пулы',aave:'Aave',active:'Активный',balance:'Баланс',
+    needs_attention:'⚠️ Требует внимания',
+    enter_data:'Введи данные залога и займа',
+    income_month:'Доход / мес',net_month:'Чистая / мес',
+    income_year:'Доход / год',debt_cost:'Стоимость долга',
+    from_pools:'из пулов',after_debt:'после долга',forecast:'прогноз',per_month:'в мес',
+    hf_green:'✅ Зелёная зона — безопасно',
+    hf_watch:'?? Следи за рынком',
+    hf_yellow:'⚠️ Жёлтая зона — действуй',
+    hf_red:'?? Красная зона — риск ликвидации!',
+    aave_collateral:'Залог Aave',my_pools:'Мои пулы',
+    add_assets:'Введи количество активов',add_pools:'Добавь пулы в настройках',
+    settings:'⚙️ Настройки',safe:'Безопасно',watch:'Следи',risk:'Риск',
+    in_range:'✅ В диапазоне',out_of_range:'?? Вне диапазона',
+    apy_apr:'APY/APR',income_mo:'Доход/мес',
+    total_deposited:'Всего внёс',total_earned:'Заработано',total_withdrawn:'Снято',net_profit:'Чистая прибыль',
+    growth_chart:'График накопления',chart_hint:'Появится после первых записей',
+    journal_empty:'Журнал пуст',journal_empty_sub:'Добавь первую запись',
+    add_entry:'+ Запись',
+    deposit_type:'Пополнение',withdraw_type:'Снятие',income_type:'Доход с пула',reward_type:'Награды',fee_type:'Комиссия',
+    strategy_title:'Стратегия',strategy_now:'Стратегия сейчас',
+    profitable:'✅ Прибыльная',unprofitable:'❌ Убыточная',
+    no_strategy_data:'Нет данных',enter_loan_pools:'Введи данные займа и пулов',
+    breakeven:'Точка безубыточности',
+    pool_income_mo:'Доход с пулов / мес',debt_cost_mo:'Стоимость долга / мес',
+    net_profit_mo:'Чистая / мес',net_profit_yr:'Чистая / год',
+    loan_rate:'Ставка займа %/год',crash_sim:'Симулятор падения',
+    scenario:'СЦЕНАРИЙ',drop:'Падение',collateral_after:'Залог после',
+    hf_label:'Health Factor',to_liq:'До ликвидации',btc_at_liq:'BTC при ликв.',
+    rebalance:'Ребаланс',analysis:'АНАЛИЗ',
+    enter_collateral:'Введи количество активов в залоге',
+    liq_warning:'?? ЛИКВИДАЦИЯ!',danger_zone:'⚠️ Опасная зона',
+    alert_liq:'критично!',alert_hf_watch:'жёлтая зона',
+    alert_unprofitable:'Стратегия убыточна',alert_oor:'вне диапазона',
+    contact_title:'✈️ Связь',bio:'Практикующий DeFi инвестор.',
+    tg_write:'✈️ Написать в Telegram',
+    for_pros:'?? Для специалистов',pros_desc:'Нашли баг? Напишите.',
+    write_fix:'Написать что исправить',bugs_hint:'Баги, предложения',
+    for_newbies:'?? Для новичков',newbies_desc:'Что-то непонятно? Напишите.',
+    write_unclear:'Написать что непонятно',improve_hint:'Помогает улучшить',
+    support_dev:'☕ Поддержать',support_desc:'Приложение бесплатное.',
+    evm_hint:'USDC / ETH / EVM',copy_addr:'?? Скопировать',copied:'✅ Скопировано!',
+    qty_label:'КОЛ-ВО',threshold:'порог',tab_docs:'Инструкция'
+  },
+  en: {
+    tab_home:'Home',tab_positions:'Positions',tab_journal:'Journal',tab_strategy:'Strategy',tab_contact:'Contact',
+    portfolio_value:'Portfolio Value',no_data:'no data',
+    collateral:'Collateral',loan:'Loan',pools:'Pools',aave:'Aave',active:'Active',balance:'Balance',
+    needs_attention:'⚠️ Needs Attention',enter_data:'Enter collateral and loan data',
+    income_month:'Income / mo',net_month:'Net / mo',income_year:'Income / yr',debt_cost:'Debt Cost',
+    from_pools:'from pools',after_debt:'after debt',forecast:'forecast',per_month:'per mo',
+    hf_green:'✅ Green zone — safe',hf_watch:'?? Keep watching',
+    hf_yellow:'⚠️ Yellow zone — act',hf_red:'?? Red zone — liquidation risk!',
+    aave_collateral:'Aave Collateral',my_pools:'My Pools',add_assets:'Enter asset quantities',add_pools:'Add pools in settings',
+    settings:'⚙️ Settings',safe:'Safe',watch:'Watch',risk:'Risk',
+    in_range:'✅ In range',out_of_range:'?? Out of range',apy_apr:'APY/APR',income_mo:'Income/mo',
+    total_deposited:'Total Deposited',total_earned:'Total Earned',total_withdrawn:'Withdrawn',net_profit:'Net Profit',
+    growth_chart:'Growth Chart',chart_hint:'Will appear after first entries',
+    journal_empty:'Journal is empty',journal_empty_sub:'Add your first entry.',
+    add_entry:'+ Entry',deposit_type:'Deposit',withdraw_type:'Withdrawal',income_type:'Pool Income',reward_type:'Rewards',fee_type:'Fee',
+    strategy_title:'Strategy',strategy_now:'Strategy Status',
+    profitable:'✅ Profitable',unprofitable:'❌ Unprofitable',no_strategy_data:'No data',enter_loan_pools:'Enter loan and pool data',
+    breakeven:'Break-even',pool_income_mo:'Pool income / mo',debt_cost_mo:'Debt cost / mo',net_profit_mo:'Net profit / mo',net_profit_yr:'Net profit / yr',
+    loan_rate:'Borrow rate %/yr',crash_sim:'Crash Simulator',scenario:'SCENARIO',drop:'Drop',collateral_after:'Collateral after',
+    hf_label:'Health Factor',to_liq:'To liquidation',btc_at_liq:'BTC at liq.',rebalance:'Rebalance',analysis:'ANALYSIS',
+    enter_collateral:'Enter collateral quantities',liq_warning:'?? LIQUIDATION at this drop!',danger_zone:'⚠️ Danger zone',
+    alert_liq:'critical! Liquidation risk',alert_hf_watch:'yellow zone, monitor',alert_unprofitable:'Strategy unprofitable',alert_oor:'out of range',
+    contact_title:'✈️ Contact',bio:'Practicing DeFi investor.',tg_write:'✈️ Message on Telegram',
+    for_pros:'?? For professionals',pros_desc:'Found a bug? Write to me.',write_fix:'Write about what to fix',bugs_hint:'Bugs, suggestions',
+    for_newbies:'?? For beginners',newbies_desc:'Something unclear? Write.',write_unclear:'Write what is unclear',improve_hint:'Helps improve the app',
+    support_dev:'☕ Support',support_desc:'The app is free.',evm_hint:'USDC / ETH / EVM',
+    copy_addr:'?? Copy address',copied:'✅ Copied!',qty_label:'AMOUNT',threshold:'threshold',tab_docs:'Guide'
+  }
+};
+
+function t(key){var tr=TR[lang];return(tr&&tr[key])?tr[key]:(TR['ru'][key]||key);}
+
+function toggleLang(){
+  lang=(lang==='ru')?'en':'ru';
+  sSet('lang',lang);
+  var f=document.getElementById('lang-flag');
+  if(f) f.textContent=(lang==='ru')?'🇷🇺':'🇬🇧';
+  renderStaticTexts();
+  renderDocsScreen();
+  renderAll();
+}
+
+
+// 
+// STORAGE
+// 
+function sGet(k){try{const v=localStorage.getItem(k);if(v)return v}catch(e){}return null}
+function sSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+// 
+// STATE    defi_v4
+// 
+let S = {
+  stP:30, cpP:70, ucP:50, utP:50,
+  assets:[
+    {name:'BTC', color:'#f59e0b', pct:50, buy:'', qty:'', cur:'', thresh:82,  aaveQty:''},
+    {name:'ETH', color:'#818cf8', pct:50, buy:'', qty:'', cur:'', thresh:82.5, aaveQty:''}
+  ],
+  pools:[
+    {name:'GMX GLV',          color:'#10b981', pct:50, apy:'70.29', balance:'', type:'gmx_glv'},
+    {name:'Uniswap USDC/USDT',color:'#ff007a', pct:50, apy:'5.66',  balance:'', type:'uniswap', token0:'USDC', token1:'USDT', fee:'0.01', priceLow:'', priceHigh:''}
+  ]
+};
+
+const APP_VERSION = '2.0.0';
+
+function loadState(){
+  const s = sGet('defi_v4');
+  if(s){
+    try{
+      const parsed = JSON.parse(s);
+      if(parsed && typeof parsed === 'object'){
+        if(!Array.isArray(parsed.assets)) parsed.assets = S.assets;
+        if(!Array.isArray(parsed.pools))  parsed.pools  = S.pools;
+        if(typeof parsed.stP !== 'number') parsed.stP = S.stP;
+        if(typeof parsed.cpP !== 'number') parsed.cpP = S.cpP;
+        //    type
+        parsed.pools.forEach(p => {
+          if(!p.type){
+            const n = (p.name||'').toLowerCase();
+            if(n.includes('uniswap')) p.type='uniswap';
+            else if(n.includes('glv')) p.type='gmx_glv';
+            else if(n.includes('glp')||n.includes('gmx')) p.type='gmx_glp';
+            else p.type='custom';
+          }
+          if(p.type==='uniswap'){
+            if(!p.token0) p.token0='ETH';
+            if(!p.token1) p.token1='USDC';
+            if(!p.fee)    p.fee='0.3';
+            if(p.priceLow===undefined)  p.priceLow='';
+            if(p.priceHigh===undefined) p.priceHigh='';
+          }
+        });
+        S = parsed;
+      }
+    }catch(e){ console.warn('loadState error', e); }
+  }
+  const loan = sGet('defi_loan');
+  if(loan){ const el=document.getElementById('loan'); if(el) el.value=loan; }
+}
+
+function saveState(){
+  sSet('defi_v4', JSON.stringify(S));
+  const loanEl = document.getElementById('loan');
+  if(loanEl) sSet('defi_loan', loanEl.value);
+}
+
+let _saveTimer = null;
+function saveStateDebounced(){
+  if(_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(()=>{ saveState(); _saveTimer=null; }, 800);
+}
+
+// 
+// LIVE PRICES
+// 
+const PRICE_IDS = {
+  bitcoin:'t_btc', ethereum:'t_eth', solana:'t_sol',
+  binancecoin:'t_bnb', ripple:'t_xrp', 'avalanche-2':'t_avax', 'pax-gold':'t_gold'
+};
+let livePrices = {};
+let _priceTimer = null;
+
+const ASSET_MAP = {
+  btc:'bitcoin', eth:'ethereum', sol:'solana', bnb:'binancecoin',
+  xrp:'ripple', avax:'avalanche-2', gold:'pax-gold', paxg:'pax-gold',
+  silver:'silver', arb:'arbitrum', matic:'matic-network',
+  link:'chainlink', usdc:'usd-coin', usdt:'tether'
+};
+const AAVE_THRESH = {
+  btc:82, wbtc:82, eth:82.5, weth:82.5, sol:75, bnb:80,
+  avax:75, link:80, usdc:90, usdt:90, dai:90, xrp:75, arb:70, default:80
+};
+function getAaveThresh(name){
+  const n=(name||'').toLowerCase().replace(/[^a-z]/g,'');
+  for(const k of Object.keys(AAVE_THRESH)) if(n===k||n.includes(k)) return AAVE_THRESH[k];
+  return AAVE_THRESH.default;
+}
+
+function fmtPrice(p){ return p>=1000?'$'+Math.round(p).toLocaleString():p>=1?'$'+p.toFixed(2):p>0?'$'+p.toFixed(4):''; }
+function fmt(n){ return '$'+(n||0).toFixed(2); }
+
+async function fetchPrices(){
+  if(_priceTimer){ clearTimeout(_priceTimer); _priceTimer=null; }
+  const ids = Object.keys(PRICE_IDS).join(',');
+  const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`;
+  try{
+    const r = await fetch(url, {headers:{'Accept':'application/json'}});
+    if(r.ok){
+      const data = await r.json();
+      Object.keys(PRICE_IDS).forEach(id => {
+        const p = data[id]?.usd;
+        if(p){
+          livePrices[id] = p;
+          const el = document.getElementById(PRICE_IDS[id]);
+          if(el) el.textContent = fmtPrice(p);
+        }
+      });
+      //  cur  
+      S.assets.forEach((a,i) => {
+        const cgId = ASSET_MAP[a.name.toLowerCase()];
+        if(cgId && livePrices[cgId]) S.assets[i].cur = livePrices[cgId].toFixed(2);
+      });
+      renderAll();
+    }
+  }catch(e){}
+  _priceTimer = setTimeout(fetchPrices, 60000);
+}
+
+// 
+// TABS
+// 
+function switchTab(name){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+function goToSettings(){ openSettings(); }
+
+function openSettings(){
+  renderSettingsSheet();
+  document.getElementById('settings-sheet').classList.add('open');
+  document.getElementById('settings-overlay').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+function closeSettings(){
+  document.getElementById('settings-sheet').classList.remove('open');
+  document.getElementById('settings-overlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function saveSettings(){
+  var aSum=S.assets.reduce(function(s,a){return s+(parseFloat(a.pct)||0);},0);
+  var pSum=S.pools.reduce(function(s,p){return s+(parseFloat(p.pct)||0);},0);
+  var errs=[];
+  if(S.assets.length>0&&Math.abs(aSum-100)>0.5) errs.push((lang==='ru'?'Активы':'Assets')+': '+aSum.toFixed(0)+'%');
+  if(S.pools.length>0&&Math.abs(pSum-100)>0.5)  errs.push((lang==='ru'?'Пулы':'Pools')+': '+pSum.toFixed(0)+'%');
+  if(errs.length){ alert(errs.join('\n')); return; }
+  saveState(); closeSettings(); renderAll();
+}
+function renderSettingsSheet(){
+  renderSheetAssets(); renderSheetPools();
+  var ru=(lang==='ru');
+  setEl('sht-title','\u2699\ufe0f '+(ru?'\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438':'Settings'));
+  setEl('sht-assets-lbl','\ud83d\udcca '+(ru?'\u0410\u043a\u0442\u0438\u0432\u044b \u0432 \u0437\u0430\u043b\u043e\u0433\u0435 Aave':'Aave Collateral Assets'));
+  setEl('sht-pools-lbl','\ud83c\udfca '+(ru?'\u0420\u0430\u0431\u043e\u0447\u0438\u0435 \u043f\u0443\u043b\u044b':'Liquidity Pools'));
+  setEl('sht-save','\ud83d\udcbe '+(ru?'\u0421\u043e\u0445\u0440\u0430\u043d\u0438\u0442\u044c':'Save'));
+}
+function capAt100(arr,idx,val,key){
+  val=Math.max(0,Math.min(100,val)); arr[idx][key]=val;
+  var otherSum=arr.reduce(function(s,a,i){return i===idx?s:s+(parseFloat(a[key])||0);},0);
+  if(val+otherSum>100){
+    var toReduce=val+otherSum-100;
+    for(var i=arr.length-1;i>=0&&toReduce>0;i--){
+      if(i===idx) continue;
+      var cur=parseFloat(arr[i][key])||0;
+      var cut=Math.min(cur,toReduce);
+      arr[i][key]=Math.max(0,cur-cut);
+      toReduce-=cut;
+    }
+  }
+}
+function updAssetSum(){
+  var s=S.assets.reduce(function(x,a){return x+(parseFloat(a.pct)||0);},0);
+  var el=document.getElementById('sht-asset-sum');
+  if(el){el.textContent='= '+s.toFixed(0)+'%';el.className='sum-badge '+(Math.abs(s-100)<0.5?'sum-ok':'sum-err');}
+}
+function updPoolSum(){
+  var s=S.pools.reduce(function(x,p){return x+(parseFloat(p.pct)||0);},0);
+  var el=document.getElementById('sht-pool-sum');
+  if(el){el.textContent='= '+s.toFixed(0)+'%';el.className='sum-badge '+(Math.abs(s-100)<0.5?'sum-ok':'sum-err');}
+}
+function shtAddAsset(){
+  S.assets.push({name:'NEW',color:'#00e5ff',pct:0,buy:'',qty:'',cur:'',thresh:80,aaveQty:''});
+  renderSheetAssets();
+}
+function shtDelAsset(i){ S.assets.splice(i,1); renderSheetAssets(); renderPositions(); }
+function shtAddPool(type){
+  var defs={
+    uniswap:{name:'Uniswap v3',color:'#ff007a',pct:0,apy:'',balance:'',type:'uniswap',token0:'ETH',token1:'USDC',priceLow:'',priceHigh:'',fee:'0.05'},
+    gmx_glv:{name:'GMX GLV',color:'#10b981',pct:0,apy:'',balance:'',type:'gmx_glv',network:'arbitrum',market:'ETH-USDC'},
+    gmx_glp:{name:'GMX GLP',color:'#2ed573',pct:0,apy:'',balance:'',type:'gmx_glp',network:'arbitrum'},
+    custom:{name:'Pool',color:'#00e5ff',pct:0,apy:'',balance:'',type:'custom'}
+  };
+  S.pools.push(defs[type]||defs.custom);
+  renderSheetPools();
+}
+function shtDelPool(i){ S.pools.splice(i,1); renderSheetPools(); renderPositions(); }
+function renderSheetAssets(){
+  var el=document.getElementById('sht-assets-list'); if(!el) return;
+  el.innerHTML='';
+  S.assets.forEach(function(a,i){
+    if(!a.thresh) a.thresh=getAaveThresh(a.name);
+    var cgId=ASSET_MAP[a.name.toLowerCase()];
+    var liveP=(cgId&&livePrices[cgId])?livePrices[cgId]:0;
+    var hint=liveP>0?' @ $'+Math.round(liveP).toLocaleString():'';
+    var ru=(lang==='ru');
+    var d=document.createElement('div'); d.className='sa-row';
+    d.innerHTML=
+      '<div class="sa-top">'+
+        '<input type="color" class="sa-color" value="'+a.color+'" oninput="S.assets['+i+'].color=this.value;renderPositions()">'+
+        '<input class="sa-name" type="text" value="'+escHtml(a.name)+'" placeholder="Asset" '+
+          'oninput="S.assets['+i+'].name=this.value;S.assets['+i+'].thresh=getAaveThresh(this.value);renderPositions()">'+
+        '<span style="font-size:10px;color:var(--muted2);white-space:nowrap">'+hint+'</span>'+
+        '<div class="sa-pct-wrap"><input type="number" min="0" max="100" value="'+a.pct+'" '+
+          'oninput="capAt100(S.assets,'+i+',parseFloat(this.value)||0,\'pct\');this.value=S.assets['+i+'].pct;renderSheetAssets();updAssetSum()"><span>%</span></div>'+
+        '<button class="sa-del" onclick="shtDelAsset('+i+')">\u00d7</button>'+
+      '</div>'+
+      '<div class="sa-thresh">'+
+        '<span class="sa-thresh-lbl">'+(ru?'\u041f\u041e\u0420\u041e\u0413 \u041b\u0418\u041a\u0412\u0418\u0414\u0410\u0426\u0418\u0418':'LIQ. THRESHOLD')+'</span>'+
+        '<div class="sa-pct-wrap" style="width:85px"><input type="number" min="50" max="95" step="0.5" value="'+(a.thresh||getAaveThresh(a.name))+'" '+
+          'oninput="S.assets['+i+'].thresh=parseFloat(this.value)||80;renderPositions()"><span>%</span></div>'+
+      '</div>';
+    el.appendChild(d);
+  });
+  updAssetSum();
+}
+function getUniStatus(p){
+  const cgId = ASSET_MAP[(p.token0||'eth').toLowerCase()];
+  const curPrice = (cgId && livePrices[cgId]) ? livePrices[cgId] : 0;
+  const lo = parseFloat(p.priceLow)||0;
+  const hi = parseFloat(p.priceHigh)||0;
+  if(!curPrice || !lo || !hi) return {status:'unknown', price:curPrice, lo, hi};
+  const inRange = curPrice >= lo && curPrice <= hi;
+  return {status: inRange ? 'in' : 'out', price:curPrice, lo, hi, inRange};
+}
+
+function renderUniRangeBar(p){
+  const s = getUniStatus(p);
+  if(s.status === 'unknown' || !s.lo || !s.hi){
+    // Диапазон не задан — показываем подсказку в карточке трекера
+    const liveP = s.price > 0 ? '$'+Math.round(s.price).toLocaleString() : '—';
+    return `<div style="padding:8px 10px;background:rgba(255,0,122,0.05);border:1px dashed rgba(255,0,122,0.25);border-radius:8px;font-size:11px;font-family:'Space Mono',monospace;display:flex;justify-content:space-between;align-items:center">
+      <span style="color:var(--muted)">📍 Диапазон не задан</span>
+      <span style="color:#ff007a">Цена: ${liveP} · Задай в ⚙️</span>
+    </div>`;
+  }
+
+  // Позиция цены на шкале (lo=0%, hi=100%, с паддингом)
+  const pad = (s.hi - s.lo) * 0.3;
+  const visLo = s.lo - pad, visHi = s.hi + pad;
+  const rangeWidth = ((s.hi - s.lo) / (visHi - visLo) * 100).toFixed(1);
+  const rangeLeft  = ((s.lo - visLo) / (visHi - visLo) * 100).toFixed(1);
+  const pricePos   = Math.min(99, Math.max(1, ((s.price - visLo) / (visHi - visLo) * 100))).toFixed(1);
+
+  const rangeColor = s.inRange ? '#10b981' : '#ef4444';
+  const markerColor = s.inRange ? '#10b981' : '#ef4444';
+
+  return `
+  <div style="margin:10px 0 4px">
+    <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:4px">
+      <span>$${Math.round(s.lo).toLocaleString()}</span>
+      <span style="color:${s.inRange?'var(--green)':'var(--red)'};font-weight:700">
+        ${s.inRange?'● В диапазоне':'● Вне диапазона'}
+      </span>
+      <span>$${Math.round(s.hi).toLocaleString()}</span>
+    </div>
+    <div class="uni-range-bar">
+      <div class="uni-range-fill" style="left:${rangeLeft}%;width:${rangeWidth}%;background:${rangeColor};opacity:0.35"></div>
+      <div class="uni-range-fill" style="left:${rangeLeft}%;width:${rangeWidth}%;background:${rangeColor};opacity:0.15;top:0;height:100%"></div>
+      <div class="uni-range-marker ${s.inRange?'':'oor-pulse'}"
+           style="left:${pricePos}%;background:${markerColor};top:-4px;width:18px;height:18px;border-radius:50%;position:absolute;border:3px solid var(--bg)">
+      </div>
+    </div>
+    <div style="text-align:center;font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:6px">
+      Цена сейчас: <span style="color:var(--accent);font-weight:700">$${Math.round(s.price).toLocaleString()}</span>
+    </div>
+  </div>
+  <div class="${s.inRange?'uni-status-in':'uni-status-out'} ${s.inRange?'':'oor-pulse'}">
+    ${s.inRange
+      ? '✅ В диапазоне — комиссии начисляются'
+      : '🚨 Вне диапазона — комиссии не начисляются'}
+  </div>`;
+}
+
+function updateUniPreviewInSheet(i){
+  var el=document.getElementById('uni-sheet-prev-'+i);
+  if(el) el.innerHTML=buildUniMiniPreview(S.pools[i]);
+  renderPositions();
+}
+function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+function openAddEntry(){
+  var ru = (lang === 'ru');
+  var types = [
+    {v:'deposit',  l: ru ? 'Пополнение'   : 'Deposit'},
+    {v:'withdraw', l: ru ? 'Снятие'       : 'Withdrawal'},
+    {v:'income',   l: ru ? 'Доход с пула' : 'Pool Income'},
+    {v:'reward',   l: ru ? 'Награды'      : 'Rewards'},
+    {v:'fee',      l: ru ? 'Комиссия'     : 'Fee'}
+  ];
+  var typeOpts = types.map(function(t){
+    return '<option value="'+t.v+'">'+t.l+'</option>';
+  }).join('');
+
+  var wrap = document.createElement('div');
+  wrap.id = 'jrn-modal-wrap';
+  wrap.innerHTML =
+    '<div id="jrn-modal-overlay" onclick="closeAddEntry()" '+
+      'style="position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:500;backdrop-filter:blur(4px)"></div>'+
+    '<div style="position:fixed;bottom:0;left:0;right:0;'+
+      'background:var(--surface);border-radius:20px 20px 0 0;z-index:600;'+
+      'padding:20px 16px 32px;display:flex;flex-direction:column;gap:12px">'+
+      '<div style="width:36px;height:4px;background:var(--border2);border-radius:2px;margin:0 auto 4px"></div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between">'+
+        '<span style="font-size:16px;font-weight:800">'+(ru ? 'Новая запись' : 'New Entry')+'</span>'+
+        '<button onclick="closeAddEntry()" style="background:var(--surface2);border:1px solid var(--border);'+
+          'border-radius:8px;width:30px;height:30px;color:var(--text);font-size:18px;cursor:pointer">x</button>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">'+
+        '<div style="display:flex;flex-direction:column;gap:4px;grid-column:span 2">'+
+          '<label style="font-size:11px;color:var(--muted2);text-transform:uppercase;font-family:monospace">'+(ru ? 'ТИП' : 'TYPE')+'</label>'+
+          '<select id="jrn-type" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;outline:none">'+typeOpts+'</select>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px;grid-column:span 2">'+
+          '<label style="font-size:11px;color:var(--muted2);text-transform:uppercase;font-family:monospace">'+(ru ? 'СУММА $' : 'AMOUNT $')+'</label>'+
+          '<input id="jrn-amount" type="number" inputmode="decimal" placeholder="0.00" '+
+            'style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;'+
+            'padding:10px 12px;color:var(--text);font-size:18px;font-weight:700;outline:none;font-family:monospace">'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px">'+
+          '<label style="font-size:11px;color:var(--muted2);text-transform:uppercase;font-family:monospace">'+(ru ? 'ИСТОЧНИК' : 'SOURCE')+'</label>'+
+          '<input id="jrn-source" type="text" placeholder="Aave / Uniswap / GMX" '+
+            'style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;'+
+            'padding:10px 12px;color:var(--text);font-size:14px;outline:none">'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px">'+
+          '<label style="font-size:11px;color:var(--muted2);text-transform:uppercase;font-family:monospace">'+(ru ? 'ЗАМЕТКА' : 'NOTE')+'</label>'+
+          '<input id="jrn-note" type="text" placeholder="..." '+
+            'style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;'+
+            'padding:10px 12px;color:var(--text);font-size:14px;outline:none">'+
+        '</div>'+
+      '</div>'+
+      '<button onclick="saveJournalEntry()" '+
+        'style="padding:14px;background:linear-gradient(135deg,var(--accent2),#4f46e5);'+
+        'border:none;border-radius:14px;color:#fff;font-size:15px;font-weight:700;cursor:pointer">'+
+        (ru ? 'Сохранить' : 'Save')+
+      '</button>'+
+    '</div>';
+  document.body.appendChild(wrap);
+  setTimeout(function(){ var el=document.getElementById('jrn-amount'); if(el) el.focus(); }, 80);
+}
+
+function closeAddEntry(){
+  var el = document.getElementById('jrn-modal-wrap');
+  if(el) el.remove();
+}
+
+function saveJournalEntry(){
+  var amEl = document.getElementById('jrn-amount');
+  var amount = parseFloat(amEl ? amEl.value : 0);
+  if(!amount || isNaN(amount)){
+    if(amEl) amEl.style.borderColor = 'var(--red)';
+    return;
+  }
+  var type   = (document.getElementById('jrn-type')   || {}).value || 'deposit';
+  var source = (document.getElementById('jrn-source') || {}).value || '';
+  var note   = (document.getElementById('jrn-note')   || {}).value || '';
+  try {
+    var entries = JSON.parse(localStorage.getItem('defi_journal') || '[]');
+    entries.unshift({ id: Date.now(), date: new Date().toISOString(), type: type, amount: amount, source: source, note: note });
+    localStorage.setItem('defi_journal', JSON.stringify(entries));
+  } catch(e){}
+  closeAddEntry();
+  renderJournal();
+}
+
+// 
+// CALC    
+// 
+function calc(){
+  const loan         = parseFloat(document.getElementById('loan')?.value)||0;
+  const borrowRate   = parseFloat(document.getElementById('borrow_rate')?.value)||5.5;
+
+  //   
+  let aaveTotal = 0, weightedCollateral = 0;
+  S.assets.forEach(a => {
+    const cgId  = ASSET_MAP[a.name.toLowerCase()];
+    const price = (cgId && livePrices[cgId]) ? livePrices[cgId] : (parseFloat(a.cur)||0);
+    const qty   = parseFloat(a.aaveQty)||0;
+    const val   = qty * price;
+    aaveTotal += val;
+    weightedCollateral += val * ((parseFloat(a.thresh)||getAaveThresh(a.name))/100);
+  });
+
+  // HF
+  const hf = (aaveTotal>0 && loan>0) ? weightedCollateral/loan : 0;
+
+  //  
+  const totalIncome   = S.pools.reduce((s,p)=>{ const b=calcPoolBalance(p),a=parseFloat(p.apy||p.apr)||0; return s+(b>0&&a>0?b*a/100/12:0); }, 0);
+  const debtCost      = loan * borrowRate/100/12;
+  const netProfit     = totalIncome - debtCost;
+  const poolsBalance  = S.pools.reduce((s,p)=>s+calcPoolBalance(p), 0);
+
+  //    
+  const portfolioTotal = aaveTotal + poolsBalance;
+  const homeTotal = document.getElementById('home_total');
+  if(homeTotal) homeTotal.textContent = portfolioTotal>0 ? '$'+Math.round(portfolioTotal).toLocaleString() : '$0';
+
+  //  
+  setEl('qm_collateral', aaveTotal>0 ? '$'+Math.round(aaveTotal).toLocaleString() : '');
+  setEl('qm_loan',       loan>0      ? '$'+Math.round(loan).toLocaleString()       : '');
+  setEl('qm_pools',      poolsBalance>0 ? '$'+Math.round(poolsBalance).toLocaleString() : '');
+
+  // HF  
+  const hfEl   = document.getElementById('home_hf');
+  const hfBar  = document.getElementById('home_hf_bar');
+  const hfZone = document.getElementById('home_hf_zone');
+  if(hf>0){
+    hfEl.textContent = hf.toFixed(2);
+    const barPct = Math.min(hf/3*100, 100);
+    let color, zoneText;
+    if(hf>=2)        { color='var(--green)';  zoneText='    '; }
+    else if(hf>=1.6) { color='var(--accent)'; zoneText='   '; }
+    else if(hf>=1.4) { color='var(--orange)'; zoneText='    '; }
+    else             { color='var(--red)';    zoneText='     !'; }
+    if(hfEl)   { hfEl.style.color=color; }
+    if(hfBar)  { hfBar.style.width=barPct+'%'; hfBar.style.background=color; }
+    if(hfZone) { hfZone.textContent=zoneText; hfZone.style.color=color; }
+  } else {
+    if(hfEl)   { hfEl.textContent=''; hfEl.style.color='var(--muted2)'; }
+    if(hfBar)  { hfBar.style.width='0%'; }
+    if(hfZone) { hfZone.textContent='    '; hfZone.style.color='var(--muted2)'; }
+  }
+
+  // 
+  setEl('home_income_month', totalIncome>0 ? fmt(totalIncome) : '');
+  setEl('home_net_month',    totalIncome>0||debtCost>0 ? fmt(netProfit) : '');
+  setEl('home_income_year',  totalIncome>0 ? fmt(totalIncome*12) : '');
+  setEl('home_debt_cost',    debtCost>0 ? fmt(debtCost) : '');
+  if(document.getElementById('home_net_month'))
+    document.getElementById('home_net_month').style.color = netProfit>=0?'var(--green)':'var(--red)';
+
+  //  ()
+  setEl('be_income', totalIncome>0 ? fmt(totalIncome) : '');
+  setEl('be_cost',   debtCost>0    ? fmt(debtCost)    : '');
+  const beProfEl = document.getElementById('be_profit');
+  const beYearEl = document.getElementById('be_year');
+  if(beProfEl){ beProfEl.textContent=totalIncome>0||debtCost>0?fmt(netProfit):''; beProfEl.style.color=netProfit>=0?'var(--green)':'var(--red)'; }
+  if(beYearEl){ beYearEl.textContent=totalIncome>0||debtCost>0?fmt(netProfit*12):''; beYearEl.style.color=netProfit>=0?'var(--green)':'var(--red)'; }
+
+  //  
+  const svEl  = document.getElementById('sv_text');
+  const svSub = document.getElementById('sv_sub');
+  if(totalIncome>0 || debtCost>0){
+    if(netProfit>0){
+      if(svEl)  { svEl.textContent=' '; svEl.style.color='var(--green)'; }
+      if(svSub) svSub.textContent = `+${fmt(netProfit)}/  +${fmt(netProfit*12)}/`;
+    } else {
+      if(svEl)  { svEl.textContent=' '; svEl.style.color='var(--red)'; }
+      if(svSub) svSub.textContent = `${fmt(netProfit)}/    `;
+    }
+  }
+
+  //   
+  if(weightedCollateral>0){
+    setEl('loan_g', fmt(weightedCollateral/2.0));
+    setEl('loan_o', fmt(weightedCollateral/1.6));
+    setEl('loan_r', fmt(weightedCollateral/1.4));
+  }
+
+  // HF 
+  updateHFAlert(hf);
+
+  //   
+  renderAlerts(hf, netProfit, totalIncome);
+
+  updateSim();
+  saveStateDebounced();
+}
+
+function calcPoolBalance(p){
+  if(p.type==='gmx_glp'||p.type==='gmx_glv'){
+    const qty = parseFloat(p.tokenQty)||0;
+    if(qty>0){
+      const manualP = parseFloat(p.tokenPrice)||0;
+      let price = manualP;
+      if(!price){
+        const market = (p.market||'').toUpperCase().split('-')[0];
+        const cgId = ASSET_MAP[market.toLowerCase()];
+        if(cgId && livePrices[cgId]) price = livePrices[cgId];
+      }
+      if(price>0) return qty * price;
+    }
+  }
+  return parseFloat(p.balance)||0;
+}
+
+function setEl(id, val){
+  const el = document.getElementById(id);
+  if(el) el.textContent = val;
+}
+
+// 
+// 
+// 
+function renderAlerts(hf, netProfit, totalIncome){
+  const section  = document.getElementById('alerts_section');
+  const list     = document.getElementById('alerts_list');
+  const posiBadge   = document.getElementById('badge-positions');
+  const stratBadge  = document.getElementById('badge-strategy');
+  if(!section||!list) return;
+
+  const alerts = [];
+
+  if(hf>0 && hf<1.4)
+    alerts.push({cls:'alert-danger',  icon:'', text:`HF ${hf.toFixed(2)}  !  `, tab:'positions'});
+  else if(hf>=1.4 && hf<1.6)
+    alerts.push({cls:'alert-warning', icon:'', text:`HF ${hf.toFixed(2)}   , `, tab:'positions'});
+
+  if(totalIncome>0 && netProfit<0)
+    alerts.push({cls:'alert-warning', icon:'', text:'     ', tab:'strategy'});
+
+  // Uniswap out-of-range
+  S.pools.forEach(p => {
+    if(p.type==='uniswap' && p.priceLow && p.priceHigh){
+      const cgId = ASSET_MAP[(p.token0||'eth').toLowerCase()];
+      const cur  = (cgId && livePrices[cgId]) ? livePrices[cgId] : 0;
+      if(cur>0 && (cur<parseFloat(p.priceLow)||cur>parseFloat(p.priceHigh)))
+        alerts.push({cls:'alert-warning', icon:'', text:`${p.name}   ,   `, tab:'positions'});
+    }
+  });
+
+  if(alerts.length===0){
+    section.style.display = 'none';
+    if(posiBadge)  posiBadge.classList.remove('show');
+    if(stratBadge) stratBadge.classList.remove('show');
+    return;
+  }
+
+  section.style.display = 'block';
+  list.innerHTML = alerts.map(a =>
+    `<div class="alert-banner ${a.cls}" onclick="switchTab('${a.tab}')" style="cursor:pointer">
+      <span style="font-size:18px">${a.icon}</span>
+      <span>${a.text}</span>
+      <span style="margin-left:auto;opacity:0.6"></span>
+    </div>`
+  ).join('');
+
+  const hasPosition = alerts.some(a=>a.tab==='positions');
+  const hasStrategy = alerts.some(a=>a.tab==='strategy');
+  if(posiBadge)  posiBadge.classList.toggle('show', hasPosition);
+  if(stratBadge) stratBadge.classList.toggle('show', hasStrategy);
+}
+
+// 
+// RENDER POSITIONS
+// 
+function renderPositions(){
+  // 
+  const colEl = document.getElementById('pos_collateral_list');
+  const totEl = document.getElementById('pos_aave_total');
+  if(colEl){
+    if(!S.assets.length || !S.assets.some(a=>parseFloat(a.aaveQty)>0)){
+      colEl.innerHTML = `<div class="empty-state" style="padding:20px 0"><div class="empty-icon"></div><div class="empty-sub">  </div></div>`;
+    } else {
+      let html='', total=0;
+      S.assets.forEach((a,i)=>{
+        const cgId  = ASSET_MAP[a.name.toLowerCase()];
+        const price = (cgId&&livePrices[cgId])?livePrices[cgId]:(parseFloat(a.cur)||0);
+        const qty   = parseFloat(a.aaveQty)||0;
+        const val   = qty*price;
+        total += val;
+        html += `<div class="collateral-item" style="margin-bottom:8px">
+          <div class="ci-dot" style="background:${a.color}"></div>
+          <div>
+            <div class="ci-name">${a.name}</div>
+            <div style="font-size:10px;color:var(--muted2);font-family:'Space Mono',monospace">${price?'@ $'+Math.round(price).toLocaleString():''}</div>
+          </div>
+          <div class="ci-right">
+            <div class="ci-value">${val>0?'$'+val.toFixed(2):'$0.00'}</div>
+            <div class="ci-qty">${qty>0?qty.toFixed(4)+' '+a.name:''}</div>
+          </div>
+        </div>
+        <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:8px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px">
+          <label style="font-size:11px;color:var(--muted2);font-family:'Space Mono',monospace;white-space:nowrap">- ${a.name}</label>
+          <input id="aave_qty_${i}" type="text" inputmode="decimal" placeholder="0.00000"
+            value="${a.aaveQty||''}" autocomplete="off"
+            style="flex:1;background:none;border:none;outline:none;color:var(--text);font-family:'Space Mono',monospace;font-size:15px;font-weight:700;text-align:right"
+            oninput="S.assets[${i}].aaveQty=this.value.replace(/,/g,'.');calc();renderPositions();"
+            onblur="calc();renderPositions();">
+        </div>`;
+      });
+      colEl.innerHTML = html;
+      if(totEl) totEl.textContent = total>0?'$'+total.toFixed(2):'$0';
+    }
+  }
+
+  // 
+  const poolsEl = document.getElementById('pos_pools_list');
+  const poolsTotEl = document.getElementById('pos_pools_total');
+  if(poolsEl){
+    if(!S.pools.length){
+      poolsEl.innerHTML = `<div class="empty-state" style="padding:20px 0"><div class="empty-icon"></div><div class="empty-sub">   </div></div>`;
+    } else {
+      let html='', total=0;
+      S.pools.forEach(p=>{
+        const bal   = calcPoolBalance(p);
+        const apy   = parseFloat(p.apy||p.apr)||0;
+        const month = bal>0&&apy>0 ? bal*apy/100/12 : 0;
+        total += bal;
+        const typeIcon = {uniswap:'',gmx_glp:'',gmx_glv:'',custom:''}[p.type]||'';
+
+        // Uniswap  
+        let rangeHtml = '';
+        if(p.type==='uniswap' && p.priceLow && p.priceHigh){
+          const cgId = ASSET_MAP[(p.token0||'eth').toLowerCase()];
+          const cur  = (cgId&&livePrices[cgId])?livePrices[cgId]:0;
+          const lo=parseFloat(p.priceLow), hi=parseFloat(p.priceHigh);
+          if(cur>0){
+            const inRange = cur>=lo && cur<=hi;
+            rangeHtml = `<div style="margin-top:8px;padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700;text-align:center;${inRange?'background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.3)':'background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3)'}">
+              ${inRange?'  ':'      '}
+            </div>`;
+          }
+        }
+
+        html += `<div class="pool-item" style="margin-bottom:8px">
+          <div class="pool-item-top">
+            <span style="font-size:16px">${typeIcon}</span>
+            <span class="pool-item-name">${p.name}</span>
+            <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--muted2)">${p.pct}%</span>
+          </div>
+          <div class="pool-item-stats">
+            <div class="pis"><label>APY/APR</label><span style="color:var(--green)">${apy?apy+'%':''}</span></div>
+            <div class="pis"><label></label><span>${bal?'$'+bal.toFixed(2):''}</span></div>
+            <div class="pis"><label>/</label><span style="color:var(--green)">${month?'$'+month.toFixed(2):''}</span></div>
+          </div>
+          ${rangeHtml}
+        </div>`;
+      });
+      poolsEl.innerHTML = html;
+      if(poolsTotEl) poolsTotEl.textContent = total>0?'$'+total.toFixed(2):'$0';
+    }
+  }
+}
+
+// 
+// RENDER JOURNAL
+// 
+function getJrnEntries(){ try{ return JSON.parse(localStorage.getItem('defi_journal')||'[]'); }catch(e){return [];} }
+
+function renderJournal(){
+  const entries = getJrnEntries();
+  let totalIn=0, totalOut=0, totalEarned=0, totalFees=0;
+  entries.forEach(e=>{
+    const a = parseFloat(e.amountUSD)||0;
+    if(e.type==='deposit')  totalIn      += a;
+    if(e.type==='withdraw') totalOut     += a;
+    if(e.type==='income'||e.type==='reward') totalEarned += a;
+    if(e.type==='fee')      totalFees    += a;
+  });
+  const net = totalIn + totalEarned - totalOut - totalFees;
+
+  setEl('jrn_total_in',     totalIn>0     ? '$'+totalIn.toFixed(2)     : '$0');
+  setEl('jrn_total_earned', totalEarned>0 ? '$'+totalEarned.toFixed(2) : '$0');
+  setEl('jrn_total_out',    totalOut>0    ? '$'+totalOut.toFixed(2)     : '$0');
+  setEl('jrn_net_profit',   '$'+(net).toFixed(2));
+  const npEl = document.getElementById('jrn_net_profit');
+  if(npEl) npEl.style.color = net>=0?'var(--accent)':'var(--red)';
+
+  // 
+  renderGrowthChart(entries);
+
+  //   20
+  const listEl = document.getElementById('jrn_entries_list');
+  if(!listEl) return;
+  if(!entries.length){
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon"></div><div class="empty-title"> </div><div class="empty-sub">  </div></div>`;
+    return;
+  }
+  const recent = [...entries].sort((a,b)=>new Date(b.ts)-new Date(a.ts)).slice(0,30);
+  const typeInfo = {
+    deposit:  {icon:'', label:'',   color:'var(--green)'},
+    withdraw: {icon:'', label:'',        color:'var(--orange)'},
+    income:   {icon:'', label:'  ',  color:'var(--green)'},
+    reward:   {icon:'', label:'',       color:'var(--accent)'},
+    fee:      {icon:'', label:'',      color:'var(--red)'},
+  };
+  listEl.innerHTML = recent.map(e=>{
+    const ti = typeInfo[e.type]||{icon:'',label:e.type,color:'var(--text)'};
+    const sign = (e.type==='withdraw'||e.type==='fee') ? '-' : '+';
+    const amt  = parseFloat(e.amountUSD)||0;
+    return `<div class="jrn-entry-card" style="margin-bottom:8px">
+      <div class="jec-icon" style="background:${ti.color}22">${ti.icon}</div>
+      <div class="jec-info">
+        <div class="jec-type">${ti.label}</div>
+        <div class="jec-meta">${e.date||''}${e.source?'  '+e.source:''}</div>
+      </div>
+      <div class="jec-amount" style="color:${ti.color}">${sign}$${amt.toFixed(2)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderGrowthChart(entries){
+  const canvas = document.getElementById('growth_chart');
+  const placeholder = document.getElementById('chart_placeholder');
+  if(!entries.length){ if(canvas) canvas.style.display='none'; if(placeholder) placeholder.style.display='flex'; return; }
+
+  //   
+  const months = {};
+  entries.forEach(e=>{
+    const m = (e.date||'').slice(0,7);
+    if(!m) return;
+    if(!months[m]) months[m] = {in:0, earned:0};
+    if(e.type==='deposit') months[m].in += parseFloat(e.amountUSD)||0;
+    if(e.type==='income'||e.type==='reward') months[m].earned += parseFloat(e.amountUSD)||0;
+  });
+  const keys = Object.keys(months).sort();
+  if(keys.length<2){ if(canvas) canvas.style.display='none'; if(placeholder) placeholder.style.display='flex'; return; }
+
+  if(placeholder) placeholder.style.display='none';
+  if(!canvas) return;
+  canvas.style.display='block';
+  canvas.width = canvas.parentElement?.clientWidth || 340;
+
+  const ctx = canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height, pad=16;
+  ctx.clearRect(0,0,W,H);
+
+  //  
+  let cumIn=0, cumEarned=0;
+  const inLine=[], earnedLine=[];
+  keys.forEach(k=>{ cumIn+=months[k].in; cumEarned+=months[k].earned; inLine.push(cumIn); earnedLine.push(cumIn+cumEarned); });
+  const maxVal = Math.max(...earnedLine, 1);
+  const stepX = (W-pad*2)/(keys.length-1||1);
+  const scaleY = v => H-pad - (v/maxVal)*(H-pad*2);
+  const pts = arr => arr.map((v,i)=>[pad+i*stepX, scaleY(v)]);
+
+  function drawLine(points, color){
+    ctx.beginPath();
+    ctx.moveTo(points[0][0], points[0][1]);
+    points.slice(1).forEach(p=>ctx.lineTo(p[0],p[1]));
+    ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.stroke();
+    // Dots
+    points.forEach(p=>{ ctx.beginPath(); ctx.arc(p[0],p[1],3.5,0,Math.PI*2); ctx.fillStyle=color; ctx.fill(); });
+  }
+
+  drawLine(pts(inLine),     '#94a3b8');
+  drawLine(pts(earnedLine), '#10b981');
+}
+
+// 
+// SIMULATOR
+// 
+function updateSim(){
+  const pct = parseInt(document.getElementById('sim_slider')?.value||20);
+  const pctEl = document.getElementById('sim_pct');
+  if(pctEl) pctEl.textContent = ''+pct+'%';
+
+  let aaveTotal=0, effThresh=0, totalPct=0;
+  S.assets.forEach(a=>{
+    const cgId  = ASSET_MAP[a.name.toLowerCase()];
+    const price = (cgId&&livePrices[cgId])?livePrices[cgId]:(parseFloat(a.cur)||0);
+    const qty   = parseFloat(a.aaveQty)||0;
+    const val   = qty*price;
+    aaveTotal  += val;
+    const t     = (parseFloat(a.thresh)||getAaveThresh(a.name))/100;
+    effThresh  += (parseFloat(a.pct)||0)*t;
+    totalPct   += parseFloat(a.pct)||0;
+  });
+  if(totalPct>0) effThresh=effThresh/totalPct; else effThresh=0.8;
+
+  if(aaveTotal<=0){
+    ['sim_collateral','sim_hf','sim_margin','sim_liq_price'].forEach(id=>setEl(id,''));
+    const w=document.getElementById('sim_warn');
+    if(w){ w.textContent='    '; w.style.color='var(--muted2)'; }
+    return;
+  }
+
+  const loan = parseFloat(document.getElementById('loan')?.value)||0;
+  const simC = aaveTotal*(1-pct/100);
+  let simW=0;
+  S.assets.forEach(a=>{
+    const cgId  = ASSET_MAP[a.name.toLowerCase()];
+    const price = (cgId&&livePrices[cgId])?livePrices[cgId]:(parseFloat(a.cur)||0);
+    const qty   = parseFloat(a.aaveQty)||0;
+    simW += qty*price*(1-pct/100)*((parseFloat(a.thresh)||getAaveThresh(a.name))/100);
+  });
+
+  const simHF    = loan>0 ? simW/loan : Infinity;
+  const margin   = loan>0 ? simC-loan : 0;
+  const btcCgId  = ASSET_MAP['btc'];
+  const btcPrice = livePrices[btcCgId]||0;
+  const btcQty   = parseFloat((S.assets.find(a=>a.name.toLowerCase()==='btc')||{}).aaveQty)||0;
+  const liqBtc   = btcQty>0&&loan>0 ? (loan/(effThresh*btcQty)) : 0;
+
+  setEl('sim_collateral', '$'+simC.toFixed(2));
+  const simHFel = document.getElementById('sim_hf');
+  if(simHFel){
+    simHFel.textContent = isFinite(simHF)?simHF.toFixed(2):'';
+    simHFel.style.color = simHF>=2?'var(--green)':simHF>=1.4?'var(--orange)':'var(--red)';
+  }
+  setEl('sim_margin', margin>0?'$'+margin.toFixed(2):'');
+  setEl('sim_liq_price', liqBtc>0?'$'+Math.round(liqBtc).toLocaleString():'');
+
+  const w=document.getElementById('sim_warn');
+  if(w){
+    if(simHF<1){ w.textContent='    !'; w.style.cssText='background:rgba(239,68,68,0.15);color:var(--red);padding:8px;border-radius:8px;display:block'; }
+    else if(simHF<1.4){ w.textContent='      '; w.style.cssText='background:rgba(245,158,11,0.12);color:var(--orange);padding:8px;border-radius:8px;display:block'; }
+    else { w.textContent=''; w.style.display='none'; }
+  }
+}
+
+// 
+// HF ALERT
+// 
+function updateHFAlert(hf){
+  const el = document.getElementById('hf-alert');
+  if(!el) return;
+  if(hf>0&&hf<1.0){
+    el.textContent=' ! HF '+hf.toFixed(2)+'   !';
+    el.className='danger'; el.style.display='block';
+  } else if(hf>=1.0&&hf<1.4){
+    el.textContent='  ! HF '+hf.toFixed(2)+'   ';
+    el.className='warning'; el.style.display='block';
+  } else {
+    el.style.display='none';
+  }
+}
+
+// 
+// APPLY LOAN
+// 
+function applyLoan(zone){
+  let wc=0;
+  S.assets.forEach(a=>{
+    const cgId  = ASSET_MAP[a.name.toLowerCase()];
+    const price = (cgId&&livePrices[cgId])?livePrices[cgId]:(parseFloat(a.cur)||0);
+    const qty   = parseFloat(a.aaveQty)||0;
+    wc += qty*price*((parseFloat(a.thresh)||getAaveThresh(a.name))/100);
+  });
+  const hfMap = {green:2.0, orange:1.6, red:1.4};
+  const loanEl = document.getElementById('loan');
+  if(loanEl&&wc>0){ loanEl.value=(wc/hfMap[zone]).toFixed(2); calc(); }
+}
+
+// 
+// RENDER ALL
+// 
+function renderStaticTexts(){
+  // Табы
+  var tabKeys=['tab_home','tab_positions','tab_journal','tab_strategy','tab_contact','tab_docs'];
+  document.querySelectorAll('.tab-label').forEach(function(el,i){ if(tabKeys[i]) el.textContent=t(tabKeys[i]); });
+  // Заголовки экранов
+  var ids={
+    'sh-positions':'tab_positions','sh-journal':'tab_journal',
+    'sh-strategy':'strategy_title','sh-contact':'contact_title',
+    'sh-docs':'tab_docs',
+    'lbl-tab-docs':'tab_docs',
+    'lbl-portfolio':'portfolio_value',
+    'lbl-collateral':'collateral','lbl-collateral-sub':'aave',
+    'lbl-loan':'loan','lbl-loan-sub':'active',
+    'lbl-pools':'pools','lbl-pools-sub':'balance',
+    'lbl-alerts-title':'needs_attention',
+    'lbl-hf':'hf_label',
+    'lbl-income-month':'income_month','lbl-income-month-sub':'from_pools',
+    'lbl-net-month':'net_month','lbl-net-month-sub':'after_debt',
+    'lbl-income-year':'income_year','lbl-income-year-sub':'forecast',
+    'lbl-debt-cost':'debt_cost','lbl-debt-cost-sub':'per_month',
+    'btn-settings':'settings','btn-add-entry':'add_entry',
+    'lbl-strategy-now':'strategy_now',
+    'lbl-breakeven':'breakeven',
+    'lbl-breakeven':'breakeven',
+    'lbl-be-income':'pool_income_mo','lbl-be-cost':'debt_cost_mo',
+    'lbl-be-profit':'net_profit_mo','lbl-be-year':'net_profit_yr',
+    'lbl-crash-sim':'crash_sim','lbl-sim-badge':'scenario',
+    'lbl-drop':'drop','lbl-sim-col':'collateral_after',
+    'lbl-sim-hf':'hf_label','lbl-sim-margin':'to_liq','lbl-sim-liq':'btc_at_liq',
+    'lbl-rebalance':'rebalance','lbl-rebal-badge':'analysis',
+    'lbl-total-in':'total_deposited','lbl-total-earned':'total_earned',
+    'lbl-total-out':'total_withdrawn','lbl-net-profit':'net_profit',
+    'lbl-chart-title':'growth_chart','lbl-chart-hint':'chart_hint',
+    'lbl-bio':'bio','lbl-tg-btn':'tg_write',
+    'lbl-for-pros':'for_pros','lbl-pros-desc':'pros_desc',
+    'lbl-write-fix':'write_fix','lbl-bugs-hint':'bugs_hint',
+    'lbl-for-newbies':'for_newbies','lbl-newbies-desc':'newbies_desc',
+    'lbl-write-unclear':'write_unclear','lbl-improve-hint':'improve_hint',
+    'lbl-support-dev':'support_dev','lbl-support-desc':'support_desc',
+    'lbl-evm-hint':'evm_hint','lbl-copy-addr':'copy_addr'
+  };
+  Object.keys(ids).forEach(function(id){
+    var el=document.getElementById(id);
+    if(el) el.textContent=t(ids[id]);
+  });
+  // HF зона если показана
+  var hfZone=document.getElementById('home_hf_zone');
+  if(hfZone && hfZone.textContent) calc();
+}
+
+
+function renderDocsScreen(){
+  // Update section headers in docs based on current language
+  var ru = (lang === 'ru');
+  var docHeaders = {
+    'doc-h-app':   ['Как работает приложение', 'How the app works'],
+    'doc-h-home':  ['Главная — картина одним взглядом', 'Home — full picture at a glance'],
+    'doc-h-pos':   ['Позиции — залог и пулы', 'Positions — collateral & pools'],
+    'doc-h-jrn':   ['Журнал — история и рост капитала', 'Journal — history & growth'],
+    'doc-h-strat': ['Стратегия — аналитика и риск-менеджмент', 'Strategy — analytics & risk management'],
+    'doc-h-hf':    ['Health Factor — как читать', 'Health Factor — how to read'],
+    'doc-h-tips':  ['Совет новичкам — как работать с займом', 'Tips for beginners — working with loans'],
+    'doc-h-check': ['Чеклист безопасной работы', 'Safety checklist']
+  };
+  Object.keys(docHeaders).forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.textContent = docHeaders[id][ru ? 0 : 1];
+  });
+}
+
+function renderAll(){
+  calc();
+  renderPositions();
+  renderJournal();
+}
+
+// 
+// INIT
+// 
+window.onload = function(){
+  var sl = sGet('lang');
+  if(sl === 'ru' || sl === 'en') lang = sl;
+  var ff = document.getElementById('lang-flag');
+  if(ff) ff.textContent = (lang === 'ru') ? '🇷🇺' : '🇬🇧';
+  try{ loadState(); }catch(e){ console.error(e); }
+  try{ renderStaticTexts(); }catch(e){ console.error(e); }
+  try{ renderDocsScreen(); }catch(e){ console.error(e); }
+  try{ renderAll(); }catch(e){ console.error(e); }
+  try{ fetchPrices(); }catch(e){}
+};
+
+function buildUniMiniPreview(p){
+  const lo = parseFloat(p.priceLow)||0;
+  const hi = parseFloat(p.priceHigh)||0;
+  const cgId = ASSET_MAP[(p.token0||'eth').toLowerCase()];
+  const curPrice = (cgId && livePrices[cgId]) ? livePrices[cgId] : 0;
+  const token = (p.token0||'ETH').toUpperCase();
+
+  // Нет данных — показываем подсказку
+  if(!lo || !hi){
+    return `<div style="padding:8px 10px;background:rgba(0,229,255,0.04);border:1px dashed rgba(0,229,255,0.2);border-radius:8px;font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;text-align:center">
+      Введи нижнюю и верхнюю границу диапазона
+    </div>`;
+  }
+
+  if(lo >= hi){
+    return `<div style="padding:8px 10px;background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.25);border-radius:8px;font-size:11px;color:var(--red);font-family:'Space Mono',monospace;text-align:center">
+      ⚠️ Нижняя граница должна быть меньше верхней
+    </div>`;
+  }
+
+  // Ширина диапазона в %
+  const width = lo > 0 ? (((hi - lo) / lo) * 100).toFixed(1) : 0;
+
+  if(!curPrice){
+    // Цена неизвестна — показываем только диапазон без маркера
+    return `<div style="padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:10px">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-bottom:6px">
+        <span>⬇ $${lo.toLocaleString()}</span>
+        <span style="color:var(--accent)">Ширина диапазона: ${width}%</span>
+        <span>⬆ $${hi.toLocaleString()}</span>
+      </div>
+      <div style="height:8px;background:var(--border);border-radius:4px;overflow:hidden">
+        <div style="height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));border-radius:4px;opacity:0.6"></div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;margin-top:6px;text-align:center">
+        Цена ${token} загружается...
+      </div>
+    </div>`;
+  }
+
+  const inRange = curPrice >= lo && curPrice <= hi;
+  const statusColor = inRange ? 'var(--green)' : 'var(--red)';
+  const statusIcon  = inRange ? '✅' : '🚨';
+  const statusText  = inRange ? 'В диапазоне — комиссии начисляются' : 'Вне диапазона — комиссии НЕ начисляются';
+  const statusBg    = inRange ? 'rgba(16,185,129,0.07)' : 'rgba(239,68,68,0.07)';
+  const statusBorder= inRange ? 'rgba(16,185,129,0.3)'  : 'rgba(239,68,68,0.3)';
+
+  // Полоска с маркером цены
+  const pad    = (hi - lo) * 0.35;
+  const visLo  = lo - pad, visHi = hi + pad;
+  const span   = visHi - visLo;
+  const rLeft  = ((lo - visLo) / span * 100).toFixed(1);
+  const rWidth = ((hi - lo)    / span * 100).toFixed(1);
+  const pPos   = Math.min(98, Math.max(2, ((curPrice - visLo) / span * 100))).toFixed(1);
+  const barColor = inRange ? '#10b981' : '#ef4444';
+
+  // % расстояния до границы
+  let distHtml = '';
+  if(!inRange){
+    if(curPrice < lo){
+      const distPct = (((lo - curPrice)/curPrice)*100).toFixed(1);
+      distHtml = `<span style="font-size:10px;color:var(--orange);font-family:'Space Mono',monospace">До входа: +${distPct}%</span>`;
+    } else {
+      const distPct = (((curPrice - hi)/hi)*100).toFixed(1);
+      distHtml = `<span style="font-size:10px;color:var(--orange);font-family:'Space Mono',monospace">Вышли: +${distPct}%</span>`;
+    }
+  }
+
+  return `<div style="padding:10px;background:${statusBg};border:1px solid ${statusBorder};border-radius:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <span style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace">$${lo.toLocaleString()}</span>
+      <span style="font-size:11px;font-weight:700;color:${statusColor}">${statusIcon} ${statusText}</span>
+      <span style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace">$${hi.toLocaleString()}</span>
+    </div>
+    <div style="position:relative;height:10px;background:var(--border);border-radius:5px;overflow:visible;margin:0 4px">
+      <div style="position:absolute;left:${rLeft}%;width:${rWidth}%;height:100%;background:${barColor};border-radius:5px;opacity:0.5"></div>
+      <div style="position:absolute;left:${pPos}%;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:${barColor};border:3px solid var(--bg);z-index:2"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+      <span style="font-size:11px;font-family:'Space Mono',monospace;color:var(--accent)">
+        ${token} сейчас: <b>$${curPrice >= 1000 ? Math.round(curPrice).toLocaleString() : curPrice.toFixed(2)}</b>
+      </span>
+      ${distHtml}
+      <span style="font-size:10px;color:var(--muted);font-family:'Space Mono',monospace">Ширина: ${width}%</span>
+    </div>
+  </div>`;
+}
+
+function renderSheetPools(){
+  var el=document.getElementById('sht-pools-list'); if(!el) return;
+  el.innerHTML='';
+  S.pools.forEach(function(p,i){
+    var typeLabel={
+      uniswap:'🦄 Uniswap v3',
+      gmx_glp:'📈 GMX GLP',
+      gmx_glv:'🟢 GMX GLV',
+      custom:'✏️ Custom'
+    }[p.type||'custom']||'✏️ Custom';
+    var ru=(lang==='ru');
+    var extraHTML='';
+    if(p.type==='uniswap'){
+      var toks=['ETH','BTC','SOL','BNB','XRP','AVAX','USDC','USDT'];
+      var toks1=['USDC','USDT','ETH','WBTC','DAI'];
+      var t0Opts=toks.map(function(t){return '<option value="'+t+'"'+(p.token0===t?' selected':'')+'>'+t+'</option>';}).join('');
+      var t1Opts=toks1.map(function(t){return '<option value="'+t+'"'+(p.token1===t?' selected':'')+'>'+t+'</option>';}).join('');
+      extraHTML='<div class="sp-grid" style="margin-top:8px">'+
+        '<div class="sp-field"><label>'+(ru?'Актив':'Base')+'</label>'+
+          '<select onchange="S.pools['+i+'].token0=this.value;renderSheetPools()">'+t0Opts+'</select></div>'+
+        '<div class="sp-field"><label>'+(ru?'Пара':'Pair')+'</label>'+
+          '<select onchange="S.pools['+i+'].token1=this.value">'+t1Opts+'</select></div>'+
+        '<div class="sp-field"><label>'+(ru?'Нижняя $':'Low $')+'</label>'+
+          '<input type="number" inputmode="decimal" placeholder="min" value="'+(p.priceLow||'')+'" '+
+          'oninput="S.pools['+i+'].priceLow=parseFloat(this.value)||0;updateUniPreviewInSheet('+i+')"></div>'+
+        '<div class="sp-field"><label>'+(ru?'Верхняя $':'High $')+'</label>'+
+          '<input type="number" inputmode="decimal" placeholder="max" value="'+(p.priceHigh||'')+'" '+
+          'oninput="S.pools['+i+'].priceHigh=parseFloat(this.value)||0;updateUniPreviewInSheet('+i+')"></div>'+
+        '<div class="sp-field"><label>'+(ru?'Комиссия %':'Fee %')+'</label>'+
+          '<input type="number" inputmode="decimal" placeholder="0.05" value="'+(p.fee||'')+'" '+
+          'oninput="S.pools['+i+'].fee=this.value">'+
+          '<span style="font-size:9px;color:var(--muted2)">0.01/0.05/0.08/0.3/1</span></div>'+
+        '</div>'+
+        '<div id="uni-sheet-prev-'+i+'" style="margin-top:8px">'+buildUniMiniPreview(p)+'</div>';
+    }
+    if(p.type==='gmx_glp'||p.type==='gmx_glv'){
+      var nets=[['arbitrum','Arbitrum'],['avalanche','Avalanche'],['base','Base'],
+                ['bnb','BNB Chain'],['ethereum','Ethereum'],['solana','Solana']];
+      var mkts=p.type==='gmx_glv'
+        ?['BTC-USDC','ETH-USDC','WETH-USDC','SOL-USDC','GOLD-USDC','XRP-USDC']
+        :['BTC/USD','ETH/USD','SOL/USD','XAU/USD','XAG/USD','EUR/USD','LINK/USD'];
+      var nOpts=nets.map(function(n){return '<option value="'+n[0]+'"'+(p.network===n[0]?' selected':'')+'>'+n[1]+'</option>';}).join('');
+      var mOpts=mkts.map(function(m){return '<option value="'+m+'"'+(p.market===m?' selected':'')+'>'+m+'</option>';}).join('');
+      extraHTML='<div class="sp-grid" style="margin-top:8px">'+
+        '<div class="sp-field"><label>'+(ru?'Сеть':'Network')+'</label>'+
+          '<select onchange="S.pools['+i+'].network=this.value">'+nOpts+'</select></div>'+
+        '<div class="sp-field"><label>Market</label>'+
+          '<select onchange="S.pools['+i+'].market=this.value">'+mOpts+'</select></div>'+
+        '<div class="sp-field"><label>'+(ru?'Кол-во токенов':'Token qty')+'</label>'+
+          '<input type="number" inputmode="decimal" placeholder="0.000" value="'+(p.tokenQty||'')+'" '+
+          'oninput="S.pools['+i+'].tokenQty=parseFloat(this.value)||0;renderPositions()"></div>'+
+        '<div class="sp-field"><label>'+(ru?'Цена $ (ручная)':'Price $ (manual)')+'</label>'+
+          '<input type="number" inputmode="decimal" placeholder="auto" value="'+(p.tokenPrice||'')+'" '+
+          'oninput="S.pools['+i+'].tokenPrice=parseFloat(this.value)||0;renderPositions()"></div>'+
+        '</div>';
+    }
+    var d=document.createElement('div'); d.className='sp-row';
+    d.innerHTML=
+      '<div class="sp-top">'+
+        '<input type="color" class="sa-color" value="'+p.color+'" oninput="S.pools['+i+'].color=this.value;renderPositions()">'+
+        '<input class="sp-name" type="text" value="'+escHtml(p.name)+'" placeholder="Pool name" '+
+          'oninput="S.pools['+i+'].name=this.value;renderPositions()">'+
+        '<span style="font-size:10px;color:var(--muted2)">'+typeLabel+'</span>'+
+        '<button class="sa-del" onclick="shtDelPool('+i+')">×</button>'+
+      '</div>'+
+      '<div class="sp-grid">'+
+        '<div class="sp-field"><label>% '+(ru?'займа':'loan')+'</label>'+
+          '<div class="sa-pct-wrap"><input type="number" min="0" max="100" value="'+(p.pct||0)+'" '+
+            'oninput="capAt100(S.pools,'+i+',parseFloat(this.value)||0,\'pct\');this.value=S.pools['+i+'].pct;updPoolSum()">'+
+          '<span>%</span></div></div>'+
+        '<div class="sp-field"><label>APY/APR %</label>'+
+          '<input type="number" inputmode="decimal" placeholder="0.00" value="'+(p.apy||p.apr||'')+'" '+
+            'oninput="S.pools['+i+'].apy=this.value;S.pools['+i+'].apr=this.value;renderPositions()"></div>'+
+        '<div class="sp-field" style="grid-column:span 2"><label>'+(ru?'Баланс $':'Balance $')+'</label>'+
+          '<input type="number" inputmode="decimal" placeholder="0.00" value="'+(p.balance||'')+'" '+
+            'oninput="S.pools['+i+'].balance=this.value;renderPositions()"></div>'+
+      '</div>'+
+      extraHTML;
+    el.appendChild(d);
+  });
+  updPoolSum();
+}
+
+
+</script>
+
+
+<!-- SETTINGS BOTTOM SHEET -->
+<div class="sheet-overlay" id="settings-overlay" onclick="closeSettings()"></div>
+<div class="settings-sheet" id="settings-sheet">
+  <div class="sheet-handle"></div>
+  <div class="sheet-header">
+    <span class="sheet-title" id="sht-title">&#9881;&#65039; Настройки</span>
+    <button class="sheet-close" onclick="closeSettings()">&#215;</button>
+  </div>
+  <div class="sheet-body">
+    <div class="sheet-section">
+      <div class="sheet-sec-title" id="sht-assets-lbl">&#128202; Активы в залоге Aave</div>
+      <div id="sht-assets-list"></div>
+      <button class="btn-add-item" onclick="shtAddAsset()">+ Добавить актив</button>
+      <div id="sht-asset-sum" class="sum-badge sum-ok">= 100%</div>
+    </div>
+    <div class="sheet-section">
+      <div class="sheet-sec-title" id="sht-pools-lbl">&#127946; Рабочие пулы</div>
+      <div id="sht-pools-list"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px">
+        <button class="btn-add-item" onclick="shtAddPool('uniswap')">&#129412; Uniswap v3</button>
+        <button class="btn-add-item" onclick="shtAddPool('gmx_glv')">&#129154; GMX GLV</button>
+        <button class="btn-add-item" onclick="shtAddPool('gmx_glp')">&#128200; GMX GLP</button>
+        <button class="btn-add-item" onclick="shtAddPool('custom')">&#9999;&#65039; Custom</button>
+      </div>
+      <div id="sht-pool-sum" class="sum-badge sum-ok" style="margin-top:8px">= 100%</div>
+    </div>
+  </div>
+  <button class="sheet-save" id="sht-save" onclick="saveSettings()">&#128190; Сохранить</button>
+</div>
+
+</body>
+</html>
